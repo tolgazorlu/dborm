@@ -1,36 +1,190 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ORMLens
 
-## Getting Started
+ORM şema kodunu canlı ER diyagramına çeviren, yapay zekâ ile analiz eden
+dbdiagram.io benzeri bir araç. Next.js App Router, React Flow, ts-morph ve
+Vercel AI SDK (Google Gemini) üzerine kurulu.
 
-First, run the development server:
+**Desteklenen ORM'ler:** Drizzle · Prisma · TypeORM · MikroORM · Sequelize ·
+Kysely · Mongoose (header'daki seçiciden)
+**Diller:** Türkçe · English
+**Tema:** koyu · açık
+
+- **Sol**: Monaco editör (ORM'e göre değişen dosya sekmeleri)
+- **Orta**: React Flow canvas — tablolar node, referanslar edge
+- **Sağ**: Deterministik kural motoru + akış hâlinde gelen AI analizi
+
+Sayfa hiçbir zaman kaymaz: header sabittir, üç bölmenin her biri kendi içinde
+scroll olur.
+
+## Kurulum
 
 ```bash
+npm install
+cp .env.example .env.local   # GOOGLE_GENERATIVE_AI_API_KEY ekleyin (opsiyonel)
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Anahtar olmadan da uygulama tamamen çalışır; yalnızca "AI analizi" sekmesi 501
+döner. Parser, kural motoru, diyagram ve paylaşım anahtarsız çalışır.
+Anahtarı [aistudio.google.com/apikey](https://aistudio.google.com/apikey)
+adresinden alabilirsiniz.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Komutlar
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Komut | Açıklama |
+| --- | --- |
+| `npm run dev` | Geliştirme sunucusu |
+| `npm run build` | Üretim derlemesi |
+| `npm test` | Parser testleri (32 test, node:test + tsx) |
+| `npm run typecheck` | `tsc --noEmit` |
+| `npm run lint` | ESLint |
 
-## Learn More
+## Mimari
 
-To learn more about Next.js, take a look at the following resources:
+```
+app/
+  layout.tsx                Tema script'i (flash önleme) + dil çerezi + sağlayıcılar
+  page.tsx                  Çalışma alanını açar
+  s/[token]/page.tsx        Tek kullanımlık link — onay ekranı
+  api/parse/route.ts        Kod → ParsedSchema + statik bulgular
+  api/analyze/route.ts      ParsedSchema → akış hâlinde AI analizi (Gemini)
+  api/share/…               Tek kullanımlık link oluştur / kontrol et / aç
+components/
+  workspace.tsx             İstemci orkestratörü (ORM, sekmeler, yerleşim)
+  i18n-provider.tsx         Dil bağlamı (çerez tabanlı)
+  theme-provider.tsx        data-theme + localStorage
+  editor/schema-editor.tsx  Monaco + özel sözdizimi teması + Prisma tokenizer
+  canvas/                   React Flow tuvali ve tablo düğümü
+  panels/                   Bulgu kartı, kural motoru paneli, AI paneli
+  share/                    Paylaş kutusu ve açma ekranı
+lib/
+  orm/
+    types.ts                Tüm ORM'lerin ürettiği ortak ParsedSchema
+    catalog.ts              İstemci tarafı ORM listesi, dosya sekmeleri, örnekler
+    parse.ts                Sunucu tarafı dağıtıcı
+    ts-project.ts           TS tabanlı ORM'ler için ortak ts-morph kurulumu
+    validate.ts             ORM'den bağımsız yapısal denetim
+    decorators.ts           TypeORM/MikroORM için ortak dekoratör okuyucuları
+    drizzle/ prisma/ typeorm/ mikroorm/ sequelize/ kysely/ mongoose/
+  flow/                     ParsedSchema → node/edge + dagre yerleşimi
+  analysis/                 Deterministik kural motoru
+  ai/                       Zod şeması, prompt, şema özeti
+  i18n/                     Sözlükler, locale yardımcıları
+  share/store.ts            Tek kullanımlık kayıt deposu
+  theme/read-palette.ts     CSS değişkenlerini Monaco/React Flow için okur
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Yeni bir ORM eklemek
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. `lib/orm/<orm>/index.ts` içinde `(files, locale) => ParsedSchema` imzalı bir
+   parser yaz. TypeScript tabanlıysa `createTsProject` + `ast-utils`, kendi
+   DSL'i varsa Prisma parser'ındaki blok okuyucu kalıbı işini görür.
+2. `lib/orm/types.ts` içindeki `ORM_IDS` listesine kimliği ekle.
+3. `lib/orm/samples.ts` içine örnek şema, `catalog.ts` içine etiket ve dosya
+   sekmelerini ekle.
+4. `lib/orm/parse.ts` sözlüğüne parser'ı bağla.
 
-## Deploy on Vercel
+Diyagram, kural motoru ve AI katmanı yalnızca `ParsedSchema` bildiği için
+başka hiçbir yere dokunmak gerekmiyor.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Parser neden sunucuda?
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+`ts-morph` TypeScript derleyicisini de beraberinde getirir (~6 MB). İstemci
+paketine koymak ilk yüklemeyi ciddi yavaşlatır. `lib/orm/*` saf fonksiyonlar
+olduğu için tarayıcıda çalıştırmak isterseniz aynı fonksiyonları bir Web Worker
+içinde çağırmanız yeterli — UI tarafında değişiklik gerekmez.
+
+### Renkler ve diyagram ölçüleri tek yerde
+
+Bütün palet `app/globals.css` içindeki CSS değişkenlerinde. Monaco ve React
+Flow CSS sınıfı kabul etmediği için renkleri `getComputedStyle` ile oradan
+okuyoruz (`lib/theme/read-palette.ts`).
+
+Bir tuzak: CSS derleyicisi hex renkleri kısaltıyor (`#ffffff` → `#fff`), Monaco
+ise yalnızca 6/8 haneli hex kabul edip istisna fırlatıyor. Okuma katmanı kısa
+formu geri açıyor.
+
+Node boyutları ve tutamaç konumları `lib/flow/constants.ts` içinde hesaplanıp
+node nesnesine yazılıyor. React Flow bunları vermediğinizde ölçümü tamamen
+`ResizeObserver`'a bırakır; ölçüm gelmezse **oklar hiç çizilmez**. Değerleri
+zaten bildiğimiz için ölçüme hiç ihtiyaç duymuyoruz — görünüm sığdırma da aynı
+sebeple `fitView` yerine elle hesaplanıyor.
+
+## Dil ve tema
+
+Tema `localStorage`'ta, dil çerezde tutuluyor. Ayrım kasıtlı:
+
+- **Tema** bir öznitelik (`<html data-theme>`), satır içi script ile ilk
+  boyamadan önce düzeltilebiliyor — geçiş anı (flash) yok.
+- **Dil** metnin kendisini değiştirir. `localStorage`'tan okunsaydı sunucunun
+  ürettiği HTML ile istemcinin metni uyuşmaz, her metin düğümünde hydration
+  hatası olurdu. Çerez istekle birlikte gittiği için sunucu doğru dilde render
+  ediyor.
+
+Sunucuda üretilen metinler (parser teşhisleri, kural motoru bulguları, AI
+çıktısı) de dile duyarlı: locale istekle birlikte gidiyor.
+
+## Tek kullanımlık paylaşım linki
+
+Header'daki **Paylaş**, şemayı (ve hangi ORM olduğunu) `/s/<token>` adresine
+taşıyan bir link üretir. Link **bir kez** açılabilir: içerik okunduğu anda
+sunucudan silinir, ikinci ziyarette "kullanılmış" ekranı gelir. Açılmayan
+linkler 24 saat sonra kendini siler.
+
+İki tasarım detayı:
+
+- **GET tüketmez.** Mesajlaşma uygulamalarının link önizlemesi ya da tarayıcı
+  ön-getirmesi bir GET atar; içerik GET'te açılsaydı link kullanıcı görmeden
+  yanardı. Bu yüzden sayfa önce bir onay ekranı gösterir, içerik yalnızca
+  kullanıcının tetiklediği POST ile açılır.
+- **Tek kullanım garantisi `rename` ile.** POSIX'te rename atomik olduğu için
+  eşzamanlı iki istekten yalnızca biri kaydı ele geçirir.
+
+Depolama dosya sistemidir (`.data/shares`, git'e girmez) — harici bir bağımlılık
+gerektirmesin diye. Tek süreçli sunucuda (dev, `next start`, Docker) doğru
+çalışır. **Serverless'ta her örnek kendi diskini gördüğü için üretimde
+`lib/share/store.ts` dosyasını Redis/Vercel KV ile değiştirin**; dışa açılan
+dört fonksiyon aynı kalabilir.
+
+## Desteklenen sözdizimi
+
+Kapsam `lib/orm/*/**.test.ts` içinde testlerle sabitlenmiştir.
+
+**Drizzle** — `pgTable`/`mysqlTable`/`sqliteTable` (lehçe otomatik), adlı ve
+adsız kolonlar, zincir metotları (`primaryKey`, `notNull`, `unique`, `default*`,
+`array`, `references`), üçüncü argümanın hem dizi hem obje formu (`index`,
+`uniqueIndex`, `primaryKey({columns})`, `foreignKey({...})`), `pgEnum` ve satır
+içi `{ enum: [...] }`, `relations()` blokları.
+
+**Prisma** — `datasource` provider'ından lehçe, `model`/`enum`/`view` blokları,
+`@id`/`@unique`/`@default`/`@map`/`@db.*`/`@relation`, `@@map`/`@@id`/`@@index`/
+`@@unique`, opsiyonel (`?`) ve liste (`[]`) alanlar. İlişki alanı ile yabancı
+anahtar kolonu ayırt edilir: diyagramda kolon olarak yalnızca ikincisi görünür.
+
+**TypeORM** — `@Entity` sınıfları, `@PrimaryGeneratedColumn`/`@PrimaryColumn`/
+`@Column` seçenekleri, `@CreateDateColumn` ailesi, TS tipinden tip çıkarımı,
+sınıf ve alan seviyesinde `@Index`/`@Unique`, `@ManyToOne`/`@OneToMany`/
+`@OneToOne`/`@ManyToMany`, `@JoinColumn({ name })`. Prisma'daki ayrımın aynısı:
+ilişki alanı kolon değildir, yabancı anahtar ayrı alandadır.
+
+**MikroORM** — `@Entity({ tableName })`, `@PrimaryKey`/`@Property`/`@Enum`
+seçenekleri, `@Index`/`@Unique({ properties })`, ilişki dekoratörleri. Önemli
+fark: `@ManyToOne` alanı **kendisi** yabancı anahtar kolonudur.
+
+**Sequelize** — `sequelize.define(...)` ve `class X extends Model` + `X.init(...)`,
+kısa (`DataTypes.STRING`) ve uzun öznitelik yazımı, `field`/`allowNull`/`unique`/
+`primaryKey`/`autoIncrement`/`defaultValue`/`references`, `tableName`,
+`indexes`, varsayılan `timestamps` ve örtük `id`; `belongsTo`/`hasMany`/`hasOne`/
+`belongsToMany` çağrıları (yabancı anahtar kolonu şemada yoksa eklenir).
+
+**Kysely** — tablo arayüzleri, `Database` haritasından tablo adları,
+`Generated<>` ve `ColumnType<>` sarmalayıcıları, `| null` ve `?` ile
+nullable'lık, dizi tipleri. Kysely tip katmanı ilişki taşımadığı için
+yabancı anahtarlar yalnızca **kolon adı tablo adıyla eşleştiğinde**
+(`user_id` → `users`) çıkarılır, diyagramda kesik çizgiyle gösterilir ve
+"onDelete eksik" gibi kısıta dair kontroller bu referanslara uygulanmaz.
+
+**Mongoose** — `new Schema({...}, {...})`, `mongoose.model('Ad', şema)`
+eşlemesi, kısa (`String`) ve uzun (`{ type: String, required: true }`) alan
+yazımı, `ref` ile ilişkiler, `enum`, `unique`, `index: true`, `schema.index()`,
+`timestamps`, gömülü alt belgeler, örtük `_id`.
