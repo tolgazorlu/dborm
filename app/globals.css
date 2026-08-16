@@ -1,26 +1,215 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/*
+ * Tema, <html data-theme="..."> ile sürülüyor (bkz. app/layout.tsx içindeki
+ * satır içi script). `dark:` varyantını da aynı özniteliğe bağlıyoruz ki
+ * gerektiğinde token dışında da kullanılabilsin.
+ */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/*
+ * Tüm renkler burada tanımlı. Monaco ve React Flow gibi CSS sınıfı kabul
+ * etmeyen kütüphaneler bu değişkenleri `getComputedStyle` ile okuyor
+ * (lib/theme/read-palette.ts) — böylece tek bir kaynak var, kopya yok.
+ * Bu yüzden değerler düz hex olmalı: Monaco `oklch()` kabul etmiyor.
+ */
+:root,
+[data-theme="light"] {
+  color-scheme: light;
+
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-2: #f1f3f7;
+  --surface-3: #e8ebf1;
+  --line: #e2e5ec;
+  --line-strong: #cbd1dc;
+
+  --fg: #14181f;
+  --fg-muted: #58616f;
+  --fg-faint: #8a93a3;
+
+  --accent: #4f46e5;
+  --accent-hover: #4338ca;
+  --accent-fg: #ffffff;
+  --accent-soft: #eef0fe;
+
+  --sev-critical: #b42318;
+  --sev-critical-bg: #fdeceb;
+  --sev-high: #b54708;
+  --sev-high-bg: #fdf0e6;
+  --sev-medium: #8a6100;
+  --sev-medium-bg: #fdf6e3;
+  --sev-low: #026aa2;
+  --sev-low-bg: #e8f4fb;
+  --sev-info: #58616f;
+  --sev-info-bg: #eef0f4;
+
+  --ok: #067647;
+  --ok-bg: #e7f6ee;
+
+  /* Diyagram */
+  --edge-fk: #4f46e5;
+  --edge-logical: #94a3b8;
+  --edge-label-bg: #ffffff;
+  --grid-dot: #d3d8e0;
+  --node-header-from: #eef0fe;
+  --node-header-to: #f1f3f7;
+  --row-stripe: #fafbfc;
+  --row-highlight: #fdf6e3;
+
+  /* Editör */
+  --code-bg: #ffffff;
+  --code-gutter: #8a93a3;
+  --code-line: #f3f5f9;
+  --code-selection: #d8dcfb;
+  --code-keyword: #7c3aed;
+  --code-string: #067647;
+  --code-number: #b54708;
+  --code-comment: #8a93a3;
+  --code-type: #026aa2;
+  --code-function: #4f46e5;
+  --code-punctuation: #6b7280;
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: #0a0c11;
+  --surface: #11141b;
+  --surface-2: #171b24;
+  --surface-3: #1e232e;
+  --line: #232834;
+  --line-strong: #333a49;
+
+  --fg: #e6eaf2;
+  --fg-muted: #96a0b3;
+  --fg-faint: #697287;
+
+  --accent: #7c8cff;
+  --accent-hover: #94a1ff;
+  --accent-fg: #0a0c11;
+  --accent-soft: #1b2032;
+
+  --sev-critical: #ff8f8a;
+  --sev-critical-bg: #2b1618;
+  --sev-high: #ffb072;
+  --sev-high-bg: #2a1c12;
+  --sev-medium: #f2cb62;
+  --sev-medium-bg: #272014;
+  --sev-low: #74c4f5;
+  --sev-low-bg: #12212c;
+  --sev-info: #96a0b3;
+  --sev-info-bg: #1a1f29;
+
+  --ok: #5fd39a;
+  --ok-bg: #10241c;
+
+  --edge-fk: #7c8cff;
+  --edge-logical: #5c6579;
+  --edge-label-bg: #11141b;
+  --grid-dot: #232834;
+  --node-header-from: #1e2438;
+  --node-header-to: #171b24;
+  --row-stripe: #141821;
+  --row-highlight: #272014;
+
+  --code-bg: #11141b;
+  --code-gutter: #4d566a;
+  --code-line: #171b24;
+  --code-selection: #2b3350;
+  --code-keyword: #c39bff;
+  --code-string: #7fd6a2;
+  --code-number: #ffb072;
+  --code-comment: #5c6579;
+  --code-type: #74c4f5;
+  --code-function: #8fa5ff;
+  --code-punctuation: #7d8798;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-faint: var(--fg-faint);
+
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-soft: var(--accent-soft);
+
+  --color-ok: var(--ok);
+  --color-ok-bg: var(--ok-bg);
+
+  --color-row-highlight: var(--row-highlight);
+  --color-row-stripe: var(--row-stripe);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  height: 100%;
+  /* Uygulama tam ekran bir çalışma alanı: sayfa asla kaymaz, her bölme
+     kendi içinde scroll olur. Böylece header hiçbir zaman kaybolmaz. */
+  overflow: hidden;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+/* Bölme içi scroll çubukları */
+.pane-scroll {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-strong) transparent;
+}
+.pane-scroll::-webkit-scrollbar {
+  width: 10px;
+}
+.pane-scroll::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border: 3px solid transparent;
+  background-clip: content-box;
+  border-radius: 999px;
+}
+.pane-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--fg-faint);
+  background-clip: content-box;
+}
+
+/* React Flow'un kendi kontrolleri tema değişkenlerine bağlanıyor. */
+.react-flow__controls {
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.08);
+}
+.react-flow__controls-button {
+  background: var(--surface);
+  border-bottom: 1px solid var(--line);
+  fill: var(--fg-muted);
+}
+.react-flow__controls-button:hover {
+  background: var(--surface-2);
+}
+.react-flow__minimap {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.react-flow__attribution {
+  background: transparent;
+  color: var(--fg-faint);
+  font-size: 9px;
+}
+.react-flow__attribution a {
+  color: inherit;
 }
