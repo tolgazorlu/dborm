@@ -1,0 +1,12 @@
+# pnpm, kurulum script'i çalıştıran paketler için açık onay ister.
+# İkisi de yerel ikili dosyalarını indirmek/bağlamak için script'e ihtiyaç duyar:
+#   esbuild       → tsx (npm test) bunun üzerine kurulu
+#   unrs-resolver → eslint-config-next'in import çözümleyicisi
+allowBuilds:
+  esbuild: true
+  unrs-resolver: true
+
+minimumReleaseAgeExclude:
+  - '@ai-sdk/mcp@2.0.32'
+  - '@ai-sdk/react@4.0.69'
+  - ai@7.0.66
