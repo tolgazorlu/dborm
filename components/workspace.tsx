@@ -1,0 +1,296 @@
+"use client";
+
+import { useCallback, useMemo, useState } from "react";
+
+import SchemaCanvas from "@/components/canvas/schema-canvas";
+import SchemaEditor from "@/components/editor/schema-editor";
+import { useI18n } from "@/components/i18n-provider";
+import LocaleToggle from "@/components/locale-toggle";
+import AnalysisPanel from "@/components/panels/analysis-panel";
+import ChecksPanel from "@/components/panels/checks-panel";
+import ShareDialog from "@/components/share/share-dialog";
+import { useTheme } from "@/components/theme-provider";
+import ThemeToggle from "@/components/theme-toggle";
+import type { LayoutDirection } from "@/lib/flow/layout";
+import { buildFlow } from "@/lib/flow/to-flow";
+import { useParsedSchema } from "@/lib/hooks/use-parsed-schema";
+import { ORM_CATALOG, ORM_LIST, initialSources } from "@/lib/orm/catalog";
+import type { OrmId } from "@/lib/orm/types";
+import { readFlowPalette } from "@/lib/theme/read-palette";
+
+type PanelTab = "checks" | "ai";
+
+export interface WorkspaceProps {
+  /** Paylaşım linkinden açıldığında gelen içerik. */
+  initialOrm?: OrmId;
+  initialSources?: Record<string, string>;
+}
+
+const TOGGLE_BASE =
+  "rounded-md border px-2 py-1 text-[11px] font-medium transition-colors whitespace-nowrap";
+
+export default function Workspace({
+  initialOrm = "drizzle",
+  initialSources: sharedSources,
+}: WorkspaceProps) {
+  const { t, locale } = useI18n();
+  const { theme } = useTheme();
+
+  const [orm, setOrm] = useState<OrmId>(initialOrm);
+  /**
+   * Kaynaklar ORM başına ayrı tutuluyor: kullanıcı Prisma'ya geçip geri
+   * döndüğünde Drizzle'da yazdıkları duruyor.
+   */
+  const [sources, setSources] = useState<Record<OrmId, Record<string, string>>>(() => {
+    const base = initialSources();
+    if (sharedSources) base[initialOrm] = { ...base[initialOrm], ...sharedSources };
+    return base;
+  });
+
+  const descriptor = ORM_CATALOG[orm];
+  const [activeFile, setActiveFile] = useState(descriptor.files[0].key);
+  const [panelTab, setPanelTab] = useState<PanelTab>("checks");
+  const [direction, setDirection] = useState<LayoutDirection>("LR");
+  const [highlight, setHighlight] = useState<Record<string, string[]>>({});
+  const [layoutVersion, setLayoutVersion] = useState(0);
+  const [showEditor, setShowEditor] = useState(true);
+  const [showPanel, setShowPanel] = useState(true);
+  const [fitSignal, setFitSignal] = useState(0);
+
+  const currentSources = sources[orm];
+  const { schema, staticFindings, isParsing, error } = useParsedSchema(orm, currentSources, locale);
+
+  const { nodes, edges } = useMemo(
+    () => buildFlow(schema, { direction, highlight, palette: readFlowPalette(theme) }),
+    [schema, direction, highlight, theme],
+  );
+
+  const handleOrmChange = useCallback((next: OrmId) => {
+    setOrm(next);
+    setActiveFile(ORM_CATALOG[next].files[0].key);
+    setHighlight({});
+  }, []);
+
+  const handleSourceChange = useCallback(
+    (fileKey: string, value: string) => {
+      setSources((previous) => ({ ...previous, [orm]: { ...previous[orm], [fileKey]: value } }));
+    },
+    [orm],
+  );
+
+  const handleHover = useCallback((table: string | null, columns: string[]) => {
+    setHighlight(table ? { [table]: columns } : {});
+  }, []);
+
+  const relayout = useCallback(() => setLayoutVersion((version) => version + 1), []);
+
+  const errorCount = schema.diagnostics.filter((item) => item.level === "error").length;
+  const entityCount =
+    schema.dialect === "mongo"
+      ? t.header.collections(schema.tables.length)
+      : t.header.tables(schema.tables.length);
+
+  return (
+    <div className="flex h-full min-h-0 flex-col bg-bg text-fg">
+      {/* Header hiçbir zaman kaymaz: sayfa scroll'u kapalı, scroll bölmelerin içinde. */}
+      <header className="flex shrink-0 items-center gap-3 overflow-x-auto border-b border-line bg-surface px-4 py-2">
+        <h1 className="whitespace-nowrap text-sm font-semibold tracking-tight">
+          ORM<span className="text-accent">Lens</span>
+        </h1>
+
+        <label className="flex shrink-0 items-center gap-1.5">
+          <span className="sr-only">{t.header.orm}</span>
+          <select
+            value={orm}
+            onChange={(event) => handleOrmChange(event.target.value as OrmId)}
+            className="rounded-md border border-line bg-surface-2 px-2 py-1 text-[11px] font-medium text-fg outline-none transition-colors hover:bg-surface-3 focus:border-accent"
+          >
+            {ORM_LIST.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.label}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <div className="hidden items-center gap-2 whitespace-nowrap text-[11px] text-fg-muted sm:flex">
+          <span>{entityCount}</span>
+          <span className="text-line-strong">·</span>
+          <span>{t.header.relations(edges.length)}</span>
+          {schema.dialect !== "unknown" ? (
+            <>
+              <span className="text-line-strong">·</span>
+              <span className="uppercase">{schema.dialect}</span>
+            </>
+          ) : null}
+        </div>
+
+        <div className="ml-auto flex items-center gap-1.5">
+          {isParsing ? (
+            <span className="whitespace-nowrap text-[11px] text-fg-faint">{t.header.parsing}</span>
+          ) : null}
+          {error ? (
+            <span className="whitespace-nowrap text-[11px]" style={{ color: "var(--sev-critical)" }}>
+              {error}
+            </span>
+          ) : null}
+          {errorCount > 0 ? (
+            <span
+              className="whitespace-nowrap rounded px-1.5 py-0.5 text-[10px] font-medium"
+              style={{ background: "var(--sev-critical-bg)", color: "var(--sev-critical)" }}
+            >
+              {t.header.syntaxErrors(errorCount)}
+            </span>
+          ) : null}
+
+          <ShareDialog orm={orm} sources={currentSources} />
+
+          <span className="mx-0.5 h-4 w-px bg-line" aria-hidden="true" />
+
+          <button
+            type="button"
+            onClick={() => {
+              setShowEditor((value) => !value);
+              setFitSignal((value) => value + 1);
+            }}
+            aria-pressed={showEditor}
+            className={`${TOGGLE_BASE} ${
+              showEditor
+                ? "border-line-strong bg-surface-2 text-fg"
+                : "border-line text-fg-faint hover:bg-surface-2 hover:text-fg"
+            }`}
+          >
+            {t.header.editor}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setShowPanel((value) => !value);
+              setFitSignal((value) => value + 1);
+            }}
+            aria-pressed={showPanel}
+            className={`${TOGGLE_BASE} ${
+              showPanel
+                ? "border-line-strong bg-surface-2 text-fg"
+                : "border-line text-fg-faint hover:bg-surface-2 hover:text-fg"
+            }`}
+          >
+            {t.header.panel}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setDirection((current) => (current === "LR" ? "TB" : "LR"));
+              relayout();
+            }}
+            className={`${TOGGLE_BASE} border-line text-fg-muted hover:bg-surface-2 hover:text-fg`}
+          >
+            {direction === "LR" ? t.header.horizontal : t.header.vertical}
+          </button>
+          <button
+            type="button"
+            onClick={relayout}
+            className={`${TOGGLE_BASE} border-line text-fg-muted hover:bg-surface-2 hover:text-fg`}
+          >
+            {t.header.relayout}
+          </button>
+
+          <LocaleToggle />
+          <ThemeToggle />
+        </div>
+      </header>
+
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        {/* Sol: editör — kendi scroll'u Monaco'nun içinde */}
+        <section
+          className={`${showEditor ? "flex" : "hidden"} min-h-0 w-[38%] min-w-[300px] max-w-[560px] flex-col border-r border-line bg-surface`}
+        >
+          <div className="flex shrink-0 border-b border-line">
+            {descriptor.files.map((file) => (
+              <button
+                key={file.key}
+                type="button"
+                onClick={() => setActiveFile(file.key)}
+                className={`px-3 py-2 text-[11px] font-medium transition-colors ${
+                  activeFile === file.key
+                    ? "border-b-2 border-accent text-fg"
+                    : "text-fg-faint hover:text-fg"
+                }`}
+              >
+                {file.name}
+              </button>
+            ))}
+          </div>
+          <div className="min-h-0 flex-1 overflow-hidden">
+            {descriptor.files.map((file) =>
+              file.key === activeFile ? (
+                <SchemaEditor
+                  key={`${orm}:${file.key}`}
+                  path={`${orm}/${file.name}`}
+                  language={file.language}
+                  value={currentSources[file.key] ?? ""}
+                  onChange={(value) => handleSourceChange(file.key, value)}
+                />
+              ) : null,
+            )}
+          </div>
+        </section>
+
+        {/* Orta: diyagram — kendi pan/zoom'u */}
+        <section className="relative min-h-0 min-w-0 flex-1">
+          <SchemaCanvas
+            nodes={nodes}
+            edges={edges}
+            layoutVersion={layoutVersion}
+            fitSignal={fitSignal}
+          />
+        </section>
+
+        {/* Sağ: bulgular — kendi dikey scroll'u */}
+        <aside
+          className={`${showPanel ? "flex" : "hidden"} min-h-0 w-[340px] shrink-0 flex-col border-l border-line bg-surface`}
+        >
+          <div className="flex shrink-0 border-b border-line">
+            <button
+              type="button"
+              onClick={() => setPanelTab("checks")}
+              className={`px-3 py-2 text-[11px] font-medium transition-colors ${
+                panelTab === "checks"
+                  ? "border-b-2 border-accent text-fg"
+                  : "text-fg-faint hover:text-fg"
+              }`}
+            >
+              {t.panel.checks(staticFindings.length + schema.diagnostics.length)}
+            </button>
+            <button
+              type="button"
+              onClick={() => setPanelTab("ai")}
+              className={`px-3 py-2 text-[11px] font-medium transition-colors ${
+                panelTab === "ai"
+                  ? "border-b-2 border-accent text-fg"
+                  : "text-fg-faint hover:text-fg"
+              }`}
+            >
+              {t.panel.ai}
+            </button>
+          </div>
+
+          {panelTab === "checks" ? (
+            <ChecksPanel
+              findings={staticFindings}
+              diagnostics={schema.diagnostics}
+              onHover={handleHover}
+            />
+          ) : (
+            <AnalysisPanel
+              orm={orm}
+              sources={currentSources}
+              disabled={schema.tables.length === 0}
+              onHover={handleHover}
+            />
+          )}
+        </aside>
+      </div>
+    </div>
+  );
+}
