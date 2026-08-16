@@ -110,6 +110,16 @@ node nesnesine yazılıyor. React Flow bunları vermediğinizde ölçümü tamam
 zaten bildiğimiz için ölçüme hiç ihtiyaç duymuyoruz — görünüm sığdırma da aynı
 sebeple `fitView` yerine elle hesaplanıyor.
 
+## Analitik
+
+Microsoft Clarity, `components/analytics/clarity.tsx` içinde `next/script` ile
+yükleniyor. Geliştirme ortamında devre dışı: yerel gezinmeler panoya gerçek
+oturum olarak düşmesin.
+
+Script etiketinin `id`'si **"clarity" olamaz** — tarayıcı id'li elementleri aynı
+adla `window` üzerine koyduğu için Clarity'nin kuyruk fonksiyonu oluşmuyor ve
+kütüphane `a[c] is not a function` ile patlıyor.
+
 ## Dil ve tema
 
 Tema `localStorage`'ta, dil çerezde tutuluyor. Ayrım kasıtlı:

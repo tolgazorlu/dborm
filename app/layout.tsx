@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { cookies } from "next/headers";
 import "./globals.css";
 
+import Clarity from "@/components/analytics/clarity";
 import { I18nProvider } from "@/components/i18n-provider";
 import InlineScript from "@/components/inline-script";
 import { ThemeProvider } from "@/components/theme-provider";
@@ -51,6 +52,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
         <I18nProvider initialLocale={locale}>
           <ThemeProvider>{children}</ThemeProvider>
         </I18nProvider>
+        <Clarity />
       </body>
     </html>
   );
