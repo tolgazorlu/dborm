@@ -1,5 +1,11 @@
 import { google } from "@ai-sdk/google";
-import { Output, createTextStreamResponse, streamText, type TextStreamPart } from "ai";
+import {
+  Output,
+  createTextStreamResponse,
+  streamText,
+  type TextStreamPart,
+  type ToolSet,
+} from "ai";
 
 import { analysisSchema } from "@/lib/ai/analysis-schema";
 import { buildAnalysisPrompt, buildSystemPrompt } from "@/lib/ai/prompt";
@@ -131,7 +137,7 @@ type OpenResult =
  * Bu durumda istemcide kısmi bir nesne kalır ve hata mesajı gösterilir.
  */
 async function openTextStream(
-  parts: AsyncIterable<TextStreamPart<Record<string, never>>>,
+  parts: AsyncIterable<TextStreamPart<ToolSet>>,
 ): Promise<OpenResult> {
   const iterator = parts[Symbol.asyncIterator]();
   let first: string | null = null;

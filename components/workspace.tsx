@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import SchemaCanvas from "@/components/canvas/schema-canvas";
 import SchemaEditor from "@/components/editor/schema-editor";
@@ -15,7 +15,8 @@ import type { LayoutDirection } from "@/lib/flow/layout";
 import { buildFlow } from "@/lib/flow/to-flow";
 import { useParsedSchema } from "@/lib/hooks/use-parsed-schema";
 import { ORM_CATALOG, ORM_LIST, initialSources } from "@/lib/orm/catalog";
-import type { OrmId } from "@/lib/orm/types";
+import { ORM_IDS, type OrmId } from "@/lib/orm/types";
+import { clearWorkspace, readWorkspace, writeWorkspace } from "@/lib/storage/workspace";
 import { readFlowPalette } from "@/lib/theme/read-palette";
 
 type PanelTab = "checks" | "ai";
@@ -56,6 +57,56 @@ export default function Workspace({
   const [showEditor, setShowEditor] = useState(true);
   const [showPanel, setShowPanel] = useState(true);
   const [fitSignal, setFitSignal] = useState(0);
+
+  /**
+   * Kalıcılık.
+   *
+   * Geri yükleme render sırasında değil `useEffect` içinde: `localStorage`
+   * sunucuda yok, ilk render'da okunsaydı sunucunun ürettiği HTML ile
+   * istemcininki uyuşmaz, hydration hatası olurdu. Kaydetme ise debounce'lu —
+   * her tuş vuruşunda diske yazmanın anlamı yok.
+   *
+   * Paylaşım linkinden gelindiyse geri yükleme atlanıyor: kullanıcının o an
+   * görmek istediği şey linkteki şema, kendi taslağı değil. Sonrasında
+   * düzenledikçe o içerik de kaydedilmeye başlar.
+   */
+  const openedFromShare = sharedSources !== undefined;
+
+  useEffect(() => {
+    if (openedFromShare) return;
+
+    const stored = readWorkspace();
+    if (!stored) return;
+
+    /**
+     * `set-state-in-effect` kuralı burada bilerek susturuluyor. Kuralın
+     * önerdiği çözüm durumu render sırasında hesaplamak; `localStorage`
+     * sunucuda olmadığı için o yol hydration uyuşmazlığı üretir. Mount'tan
+     * sonra bir kez çalışan bu ek render, doğru olanın bedeli.
+     */
+    /* eslint-disable react-hooks/set-state-in-effect */
+    setOrm(stored.orm);
+    setActiveFile(ORM_CATALOG[stored.orm].files[0].key);
+    setSources((previous) => {
+      const merged = { ...previous };
+      for (const id of ORM_IDS) merged[id] = { ...previous[id], ...stored.sources[id] };
+      return merged;
+    });
+    /* eslint-enable react-hooks/set-state-in-effect */
+  }, [openedFromShare]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => writeWorkspace({ orm, sources }), 500);
+    return () => clearTimeout(timer);
+  }, [orm, sources]);
+
+  const resetToSamples = useCallback(() => {
+    clearWorkspace();
+    const base = initialSources();
+    setSources(base);
+    setActiveFile(ORM_CATALOG[orm].files[0].key);
+    setHighlight({});
+  }, [orm]);
 
   const currentSources = sources[orm];
   const { schema, staticFindings, isParsing, error } = useParsedSchema(orm, currentSources, locale);
@@ -193,6 +244,15 @@ export default function Workspace({
             className={`${TOGGLE_BASE} border-line text-fg-muted hover:bg-surface-2 hover:text-fg`}
           >
             {t.header.relayout}
+          </button>
+          {/* Kalıcılık olmadan örneklere dönmenin bir yolu kalmazdı. */}
+          <button
+            type="button"
+            onClick={resetToSamples}
+            title={t.header.resetHint}
+            className={`${TOGGLE_BASE} border-line text-fg-muted hover:bg-surface-2 hover:text-fg`}
+          >
+            {t.header.reset}
           </button>
 
           <LocaleToggle />
