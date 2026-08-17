@@ -8,11 +8,20 @@ import type { OrmId } from "@/lib/orm/types";
 import FindingCard from "./finding-card";
 
 /**
- * `useObject`, 2xx dışındaki yanıtlarda gövdeyi olduğu gibi hata mesajına
- * koyar. Route'larımız `{ "error": "..." }` döndüğü için ham JSON'u kullanıcıya
- * göstermek yerine içindeki mesajı çıkarıyoruz.
+ * Kullanıcıya gösterilen hata metni.
+ *
+ * Üretimde **her** hata tek bir mesaja indirgeniyor: kota aşımı, sağlayıcı
+ * kesintisi, eksik anahtar, akışın ortasında bozulan JSON… Kullanıcı açısından
+ * hepsinin sonucu aynı (analiz şu an alınamıyor) ve teknik ayrıntı yalnızca
+ * sunucu hakkında bilgi sızdırır. Sunucu da aynı politikayı uyguluyor
+ * (bkz. `app/api/analyze/route.ts`); burası akış ortasında kopan bağlantı gibi
+ * sunucunun artık gövdeye yazamayacağı durumları da kapsıyor.
+ *
+ * Geliştirmede gerçek mesaj görünür, yoksa hata ayıklamak imkânsız olurdu.
  */
-function readableError(error: Error): string {
+function readableError(error: Error, fallback: string): string {
+  if (process.env.NODE_ENV !== "development") return fallback;
+
   try {
     const parsed = JSON.parse(error.message);
     if (parsed && typeof parsed.error === "string") return parsed.error;
@@ -77,7 +86,7 @@ export default function AnalysisPanel({ orm, sources, disabled, onHover }: Analy
               color: "var(--sev-critical)",
             }}
           >
-            {readableError(error)}
+            {readableError(error, t.ai.limitReached)}
           </p>
         ) : null}
 

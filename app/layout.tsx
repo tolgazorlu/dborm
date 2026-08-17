@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import "./globals.css";
 
 import Clarity from "@/components/analytics/clarity";
@@ -38,6 +38,10 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   const cookieStore = await cookies();
   const locale = toLocale(cookieStore.get(LOCALE_COOKIE)?.value);
 
+  // CSP nonce'u `proxy.ts` üretiyor; satır içi tema script'inin çalışabilmesi
+  // için etikete taşınması gerekiyor.
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
+
   return (
     <html
       lang={locale}
@@ -46,13 +50,13 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <head>
-        <InlineScript html={THEME_SCRIPT} />
+        <InlineScript html={THEME_SCRIPT} nonce={nonce} />
       </head>
       <body className="flex h-full flex-col overflow-hidden">
         <I18nProvider initialLocale={locale}>
           <ThemeProvider>{children}</ThemeProvider>
         </I18nProvider>
-        <Clarity />
+        <Clarity nonce={nonce} />
       </body>
     </html>
   );

@@ -41,6 +41,8 @@ const tr = {
     analyzing: "Analiz ediliyor…",
     stop: "Durdur",
     health: "Şema sağlığı",
+    limitReached:
+      "Günlük yapay zekâ analiz limiti doldu. Lütfen daha sonra tekrar deneyin — kural motoru ve diyagram çalışmaya devam ediyor.",
     empty:
       "Şemanızı model gözüyle değerlendirmek için yukarıdaki düğmeye basın. Eksik index, hatalı ilişki, performans ve güvenlik riskleri raporlanır.",
   },
@@ -127,6 +129,8 @@ const en: Dictionary = {
     analyzing: "Analyzing…",
     stop: "Stop",
     health: "Schema health",
+    limitReached:
+      "The daily AI analysis limit has been reached. Please try again later — the rule engine and the diagram keep working.",
     empty:
       "Press the button above to have a model review your schema. It reports missing indexes, broken relations, performance and security risks.",
   },

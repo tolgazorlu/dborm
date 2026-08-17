@@ -1,9 +1,10 @@
 import { API_MESSAGES } from "@/lib/i18n/api-messages";
-import { toLocale } from "@/lib/i18n/locales";
+import { localeFromRequest, toLocale } from "@/lib/i18n/locales";
 import { ORM_CATALOG, toOrmId } from "@/lib/orm/catalog";
+import { MAX_SOURCE_BYTES, readLimitedJson } from "@/lib/security/body";
+import { checkShareCreateQuota, tooManyRequests } from "@/lib/security/quota";
+import { clientKey } from "@/lib/security/rate-limit";
 import { createShare } from "@/lib/share/store";
-
-const MAX_INPUT_BYTES = 256 * 1024;
 
 /**
  * Tek kullanımlık paylaşım linki oluşturur.
@@ -11,16 +12,29 @@ const MAX_INPUT_BYTES = 256 * 1024;
  * Link `/s/<token>` adresine işaret eder; o sayfa açıldığında içerik **okunup
  * silinir**, ikinci ziyarette artık yoktur. Mutlak URL'i istekten türetiyoruz
  * ki tünel/farklı port/farklı alan adı durumlarında da doğru çalışsın.
+ *
+ * Her kayıt diske yazdığı için istek sayısı sınırlı: sınırsız olsaydı diski
+ * doldurmak bedava bir saldırı olurdu.
  */
 export async function POST(request: Request): Promise<Response> {
-  let body: unknown;
-  try {
-    body = await request.json();
-  } catch {
-    return Response.json({ error: API_MESSAGES.tr.invalidJson }, { status: 400 });
+  const denied = checkShareCreateQuota(clientKey(request));
+  if (denied) {
+    return tooManyRequests(API_MESSAGES[localeFromRequest(request)].tooManyRequests, denied);
   }
 
-  const { orm: rawOrm, sources: rawSources, locale: rawLocale } = (body ?? {}) as Record<string, unknown>;
+  const body = await readLimitedJson(request);
+  if (!body.ok) {
+    const fallback = API_MESSAGES[localeFromRequest(request)];
+    return body.reason === "too-large"
+      ? Response.json({ error: fallback.tooLarge(MAX_SOURCE_BYTES / 1024) }, { status: 413 })
+      : Response.json({ error: fallback.invalidJson }, { status: 400 });
+  }
+
+  const {
+    orm: rawOrm,
+    sources: rawSources,
+    locale: rawLocale,
+  } = (body.value ?? {}) as Record<string, unknown>;
   const messages = API_MESSAGES[toLocale(rawLocale)];
   const orm = toOrmId(rawOrm);
 
@@ -39,15 +53,18 @@ export async function POST(request: Request): Promise<Response> {
   if (total === 0) {
     return Response.json({ error: messages.schemaRequired }, { status: 400 });
   }
-  if (total > MAX_INPUT_BYTES) {
-    return Response.json({ error: messages.tooLarge(MAX_INPUT_BYTES / 1024) }, { status: 413 });
+  if (total > MAX_SOURCE_BYTES) {
+    return Response.json({ error: messages.tooLarge(MAX_SOURCE_BYTES / 1024) }, { status: 413 });
   }
 
   const { token, record } = await createShare({ orm, sources });
 
-  return Response.json({
-    token,
-    url: new URL(`/s/${token}`, request.url).toString(),
-    expiresAt: record.expiresAt,
-  });
+  return Response.json(
+    {
+      token,
+      url: new URL(`/s/${token}`, request.url).toString(),
+      expiresAt: record.expiresAt,
+    },
+    { headers: { "Cache-Control": "no-store" } },
+  );
 }

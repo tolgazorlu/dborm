@@ -10,6 +10,8 @@ export const API_MESSAGES: Record<
     noTables: string;
     missingApiKey: string;
     linkGone: string;
+    aiLimit: string;
+    tooManyRequests: string;
   }
 > = {
   tr: {
@@ -20,6 +22,9 @@ export const API_MESSAGES: Record<
     missingApiKey:
       "GOOGLE_GENERATIVE_AI_API_KEY tanımlı değil. `.env.local` dosyasına ekleyip sunucuyu yeniden başlatın.",
     linkGone: "Bu link daha önce kullanılmış ya da süresi dolmuş.",
+    aiLimit:
+      "Günlük yapay zekâ analiz limiti doldu. Lütfen daha sonra tekrar deneyin — kural motoru ve diyagram çalışmaya devam ediyor.",
+    tooManyRequests: "Çok fazla istek gönderildi. Lütfen biraz bekleyip tekrar deneyin.",
   },
   en: {
     invalidJson: "Invalid JSON body.",
@@ -29,5 +34,8 @@ export const API_MESSAGES: Record<
     missingApiKey:
       "GOOGLE_GENERATIVE_AI_API_KEY is not set. Add it to `.env.local` and restart the server.",
     linkGone: "This link has already been used or has expired.",
+    aiLimit:
+      "The daily AI analysis limit has been reached. Please try again later — the rule engine and the diagram keep working.",
+    tooManyRequests: "Too many requests. Please wait a moment and try again.",
   },
 };
