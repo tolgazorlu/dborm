@@ -27,16 +27,6 @@ import {
 } from "../types";
 import { parseFailureMessage, validateSchema } from "../validate";
 
-/**
- * TypeORM entity sınıflarını okur.
- *
- * Prisma'daki ayrımın aynısı burada da geçerli: ilişki alanı
- * (`author: User` + `@ManyToOne`) bir kolon değildir; yabancı anahtar ayrı bir
- * alanda (`authorId: number` + `@Column`) durur. İlişki dekoratörü ile bu
- * kolonu `@JoinColumn({ name })` ya da `<alan>Id` adlandırma kuralı üzerinden
- * eşleştiriyoruz.
- */
-
 const RELATION_DECORATORS = ["ManyToOne", "OneToMany", "OneToOne", "ManyToMany"];
 
 const DATE_COLUMNS: Record<string, string> = {
@@ -123,7 +113,6 @@ function isEntity(declaration: ClassDeclaration): boolean {
   return hasDecorator(readDecorators(declaration), "Entity", "ViewEntity", "ChildEntity");
 }
 
-/** `new DataSource({ type: 'postgres' })` varsa lehçeyi oradan al. */
 function findDialect(sourceFiles: SourceFile[]): Dialect {
   for (const sourceFile of sourceFiles) {
     const match = /type:\s*["']([\w-]+)["']/.exec(sourceFile.getFullText());
@@ -156,7 +145,6 @@ function parseEntity(
   applyClassIndexes(table, classDecorators);
 
   const relations: ParsedRelation[] = [];
-  /** İlişki dekoratörleri ikinci turda kolonlara bağlanacak. */
   const pending: {
     fieldName: string;
     target: string;
@@ -212,7 +200,6 @@ function parseEntity(
     }
   }
 
-  // İlişkileri, yabancı anahtarı tutan kolona bağla.
   for (const item of pending) {
     const column =
       (item.joinColumn && table.columns.find((entry) => entry.name === item.joinColumn)) ||
@@ -268,7 +255,6 @@ function parseColumn(
     type,
     displayType: `${length ? `${type}(${length})` : type}${isArray || options.array === true ? "[]" : ""}`,
     isPrimaryKey: Boolean(primaryGenerated || primary),
-    // TypeORM'de kolonlar varsayılan olarak NOT NULL'dur.
     isNotNull: !(options.nullable === true || isNullable),
     isUnique: options.unique === true,
     hasDefault: Boolean(primaryGenerated) || options.default !== undefined || Boolean(dateColumn),
@@ -284,7 +270,6 @@ function parseColumn(
   };
 }
 
-/** `@Index(['a', 'b'])` ve `@Unique(['a'])` sınıf dekoratörleri. */
 function applyClassIndexes(table: ParsedTable, decorators: ReadDecorator[]): void {
   for (const decorator of decorators) {
     if (decorator.name !== "Index" && decorator.name !== "Unique") continue;

@@ -1,14 +1,6 @@
 import type { Locale } from "@/lib/i18n/locales";
 import type { ParsedSchema } from "./types";
 
-/**
- * ORM'den bağımsız yapısal tutarlılık denetimi.
- *
- * Burada yalnızca "şema kendi içinde tutarlı mı" sorusu var: var olmayan bir
- * tabloya referans, eksik birincil anahtar, çakışan tablo adı. Tasarım kalitesi
- * önerileri (eksik index, güvenlik vb.) `lib/analysis/static-checks.ts` içinde.
- */
-
 interface ValidationMessages {
   duplicateTable: (name: string, first: string, second: string) => string;
   missingPrimaryKey: (table: string) => string;

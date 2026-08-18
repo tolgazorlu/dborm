@@ -30,7 +30,7 @@ function parse() {
   return parseKyselySchema([{ path: "database.ts", content: SCHEMA }]);
 }
 
-test("Database arayüzünden tablo adlarını alır", () => {
+test("takes table names from the Database interface", () => {
   const schema = parse();
   assert.equal(schema.orm, "kysely");
   assert.deepEqual(
@@ -39,7 +39,7 @@ test("Database arayüzünden tablo adlarını alır", () => {
   );
 });
 
-test("Generated ve ColumnType sarmalayıcılarını çözer", () => {
+test("unwraps Generated and ColumnType wrappers", () => {
   const user = parse().tables.find((table) => table.id === "UserTable")!;
 
   const id = user.columns[0];
@@ -51,20 +51,20 @@ test("Generated ve ColumnType sarmalayıcılarını çözer", () => {
   assert.equal(createdAt.type, "timestamp");
 });
 
-test("null birleşimini nullable sayar", () => {
+test("treats a null union as nullable", () => {
   const user = parse().tables.find((table) => table.id === "UserTable")!;
   assert.equal(user.columns.find((column) => column.key === "bio")!.isNotNull, false);
   assert.equal(user.columns.find((column) => column.key === "email")!.isNotNull, true);
 });
 
-test("dizi tiplerini işaretler", () => {
+test("flags array types", () => {
   const post = parse().tables.find((table) => table.id === "PostTable")!;
   const tags = post.columns.find((column) => column.key === "tags")!;
   assert.equal(tags.isArray, true);
   assert.equal(tags.displayType, "text[]");
 });
 
-test("ilişkileri adlandırma kuralından çıkarır ve işaretler", () => {
+test("infers relations from the naming convention and flags them", () => {
   const post = parse().tables.find((table) => table.id === "PostTable")!;
   const userId = post.columns.find((column) => column.key === "user_id")!;
 
@@ -76,7 +76,7 @@ test("ilişkileri adlandırma kuralından çıkarır ve işaretler", () => {
   });
 });
 
-test("kolon adı hiçbir tabloyla eşleşmiyorsa referans uydurmaz", () => {
+test("does not invent a reference when no table name matches", () => {
   const schema = parseKyselySchema([
     {
       path: "database.ts",
@@ -93,7 +93,7 @@ export interface Database {
   assert.equal(schema.tables[0].columns.find((column) => column.key === "tenant_id")!.reference, undefined);
 });
 
-test("Database haritası yoksa arayüz adını kullanır", () => {
+test("uses the interface name without a Database map", () => {
   const schema = parseKyselySchema([
     {
       path: "database.ts",

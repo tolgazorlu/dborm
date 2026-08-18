@@ -45,7 +45,7 @@ function parse() {
   return parseMikroOrmSchema([{ path: "entities.ts", content: SCHEMA }]);
 }
 
-test("entity sınıflarını ve tablo adlarını okur", () => {
+test("reads entity classes and table names", () => {
   const schema = parse();
   assert.equal(schema.orm, "mikroorm");
   assert.deepEqual(
@@ -54,7 +54,7 @@ test("entity sınıflarını ve tablo adlarını okur", () => {
   );
 });
 
-test("@ManyToOne alanı hem kolon hem ilişkidir", () => {
+test("a @ManyToOne field is both a column and a relation", () => {
   const post = parse().tables.find((table) => table.id === "Post")!;
 
   assert.deepEqual(
@@ -72,7 +72,7 @@ test("@ManyToOne alanı hem kolon hem ilişkidir", () => {
   });
 });
 
-test("property seçeneklerini okur", () => {
+test("reads property options", () => {
   const user = parse().tables.find((table) => table.id === "User")!;
 
   const email = user.columns.find((column) => column.key === "email")!;
@@ -91,7 +91,7 @@ test("property seçeneklerini okur", () => {
   assert.equal(createdAt.hasDefault, true);
 });
 
-test("@Unique ve @Index dekoratörlerini toplar", () => {
+test("collects @Unique and @Index decorators", () => {
   const post = parse().tables.find((table) => table.id === "Post")!;
   assert.deepEqual(post.indexes, [
     { name: undefined, columns: ["slug"], isUnique: true },
@@ -99,7 +99,7 @@ test("@Unique ve @Index dekoratörlerini toplar", () => {
   ]);
 });
 
-test("ilişkileri iki yönlü kurar", () => {
+test("builds relations in both directions", () => {
   const { relations } = parse();
   assert.deepEqual(
     relations.map((relation) => `${relation.id}:${relation.kind}`),
@@ -107,7 +107,7 @@ test("ilişkileri iki yönlü kurar", () => {
   );
 });
 
-test("çoklu birincil anahtarı bileşik sayar", () => {
+test("treats multiple primary keys as composite", () => {
   const schema = parseMikroOrmSchema([
     {
       path: "entities.ts",

@@ -19,9 +19,6 @@ import {
   parseTableDeclaration,
 } from "./parse-tables";
 
-/**
- * Drizzle ORM şema/ilişki kaynak kodunu AST üzerinden okuyup JSON'a çevirir.
- */
 export function parseDrizzleSchema(files: ParserFile[], locale: Locale = "tr"): ParsedSchema {
   const usable = files.filter((file) => file.content.trim().length > 0);
   if (usable.length === 0) return emptySchema("drizzle");
@@ -32,7 +29,6 @@ export function parseDrizzleSchema(files: ParserFile[], locale: Locale = "tr"): 
     const { project, sourceFiles } = createTsProject(usable);
     diagnostics.push(...syntacticDiagnostics(project, sourceFiles));
 
-    // Enum'lar önce toplanır: kolon tipleri onlara referans veriyor.
     const enums = new Map<string, ParsedEnum>();
     for (const sourceFile of sourceFiles) {
       for (const declaration of sourceFile.getVariableDeclarations()) {

@@ -13,7 +13,7 @@ enum Role {
   VIEWER
 }
 
-/// Kullanıcılar
+/// Users
 model User {
   id        Int      @id @default(autoincrement())
   email     String   @unique @db.VarChar(255)
@@ -41,7 +41,7 @@ function parse() {
   return parsePrismaSchema([{ path: "schema.prisma", content: SCHEMA }]);
 }
 
-test("provider'dan lehçeyi ve modellerden tabloları çıkarır", () => {
+test("derives the dialect from the provider and tables from models", () => {
   const schema = parse();
   assert.equal(schema.orm, "prisma");
   assert.equal(schema.dialect, "pg");
@@ -49,14 +49,13 @@ test("provider'dan lehçeyi ve modellerden tabloları çıkarır", () => {
     schema.tables.map((table) => table.id),
     ["User", "Post"],
   );
-  // @@map, veritabanındaki gerçek adı belirler.
   assert.deepEqual(
     schema.tables.map((table) => table.name),
     ["users", "posts"],
   );
 });
 
-test("ilişki alanını kolon saymaz, yabancı anahtar kolonunu işaretler", () => {
+test("does not count a relation field as a column and flags the foreign key column", () => {
   const post = parse().tables.find((table) => table.id === "Post")!;
 
   assert.deepEqual(
@@ -75,7 +74,7 @@ test("ilişki alanını kolon saymaz, yabancı anahtar kolonunu işaretler", () 
   });
 });
 
-test("öznitelikleri ve tipleri okur", () => {
+test("reads attributes and types", () => {
   const user = parse().tables.find((table) => table.id === "User")!;
 
   const id = user.columns[0];
@@ -95,7 +94,7 @@ test("öznitelikleri ve tipleri okur", () => {
   assert.equal(createdAt.name, "created_at");
 });
 
-test("opsiyonel ve liste alanlarını ayırt eder", () => {
+test("distinguishes optional and list fields", () => {
   const post = parse().tables.find((table) => table.id === "Post")!;
   assert.equal(post.columns.find((column) => column.key === "content")!.isNotNull, false);
 
@@ -104,12 +103,12 @@ test("opsiyonel ve liste alanlarını ayırt eder", () => {
   assert.equal(tags.displayType, "String[]");
 });
 
-test("blok özniteliklerinden index çıkarır", () => {
+test("derives indexes from block attributes", () => {
   const post = parse().tables.find((table) => table.id === "Post")!;
   assert.deepEqual(post.indexes, [{ name: undefined, columns: ["authorId"], isUnique: false }]);
 });
 
-test("one ve many ilişkilerini kurar", () => {
+test("builds one and many relations", () => {
   const { relations } = parse();
   assert.deepEqual(
     relations.map((relation) => `${relation.id}:${relation.kind}`),
@@ -122,21 +121,21 @@ test("one ve many ilişkilerini kurar", () => {
   assert.deepEqual(one.references, ["id"]);
 });
 
-test("örnek şema yapısal uyarı üretmez", () => {
+test("the sample schema produces no structural warnings", () => {
   assert.deepEqual(
     parse().diagnostics.filter((item) => item.level !== "info"),
     [],
   );
 });
 
-test("kapatılmamış blok hata teşhisi verir", () => {
+test("reports a diagnostic for an unterminated block", () => {
   const schema = parsePrismaSchema([
     { path: "schema.prisma", content: "model User {\n  id Int @id" },
   ]);
   assert.ok(schema.diagnostics.some((item) => item.level === "error"));
 });
 
-test("yorum satırlarını yok sayar, tırnak içindeki // değil", () => {
+test("ignores comment lines but not // inside quotes", () => {
   const schema = parsePrismaSchema([
     {
       path: "schema.prisma",
@@ -156,7 +155,7 @@ test("yorum satırlarını yok sayar, tırnak içindeki // değil", () => {
   assert.equal(asset.columns[1].hasDefault, true);
 });
 
-test("bileşik anahtar ve unique bloklarını okur", () => {
+test("reads composite key and unique blocks", () => {
   const schema = parsePrismaSchema([
     {
       path: "schema.prisma",
@@ -178,7 +177,7 @@ test("bileşik anahtar ve unique bloklarını okur", () => {
   ]);
 });
 
-test("mongodb provider'ını tanır", () => {
+test("recognises the mongodb provider", () => {
   const schema = parsePrismaSchema([
     {
       path: "schema.prisma",

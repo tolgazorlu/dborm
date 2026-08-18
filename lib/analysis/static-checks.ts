@@ -3,25 +3,10 @@ import type { OrmId, ParsedColumn, ParsedSchema, ParsedTable } from "@/lib/orm/t
 import { CHECK_MESSAGES } from "./messages";
 import { sortFindings, type Finding } from "./types";
 
-/**
- * Deterministik kural motoru.
- *
- * İki işi var:
- *  1. AI anahtarı olmadan da anında değer üretmek (panel boş kalmasın).
- *  2. AI prompt'una "kanıtlanmış tespitler" olarak girip modelin aynı şeyleri
- *     tahmin etmeye çalışmasını engellemek — model böylece yorum gerektiren
- *     konulara odaklanır.
- *
- * Kontroller ORM ve lehçeye göre filtreleniyor: Mongoose'ta veritabanı
- * seviyesinde `onDelete` yoktur, Prisma'da `@relation` zaten FK üretir,
- * `relations()` kapsamı ise yalnızca Drizzle'ın derdidir.
- */
 export function runStaticChecks(schema: ParsedSchema, locale: Locale = "tr"): Finding[] {
   const t = CHECK_MESSAGES[locale] ?? CHECK_MESSAGES.tr;
   const findings: Finding[] = [];
   const tables = new Map(schema.tables.map((table) => [table.id, table]));
-  // Yalnızca belge veritabanlarında FK/onDelete kavramı yoktur. TypeORM,
-  // Sequelize gibi lehçesini bildirmeyen ORM'ler ilişkisel sayılır.
   const isRelational = schema.dialect !== "mongo" && schema.orm !== "mongoose";
 
   for (const table of schema.tables) {
@@ -79,12 +64,6 @@ function checkColumn(
       });
     }
 
-    /**
-     * Mongoose'ta veritabanı seviyesinde silme davranışı yoktur. Çıkarılmış
-     * referanslarda da bu kontrolü atlıyoruz: kısıtın var olduğunu bilmiyoruz
-     * (Kysely'de FK'ler migration'larda tanımlıdır), "onDelete eksik" demek
-     * yanlış bilgi olurdu.
-     */
     if (isRelational && !reference.isInferred && !reference.onDelete) {
       findings.push({
         id: `fk-ondelete:${table.id}.${column.key}`,
@@ -152,7 +131,6 @@ function checkColumn(
   return findings;
 }
 
-/** Drizzle'a özgü: FK var ama `relations()` yok (ya da tersi). */
 function checkDrizzleRelationCoverage(
   schema: ParsedSchema,
   t: (typeof CHECK_MESSAGES)[Locale],
@@ -226,11 +204,9 @@ function checkDrizzleRelationCoverage(
   return findings;
 }
 
-/* Kod parçaları dile değil ORM'e bağlı. */
-
 function primaryKeyFix(orm: OrmId): string {
   if (orm === "prisma") return "id Int @id @default(autoincrement())";
-  if (orm === "mongoose") return "// Mongoose _id alanını kendisi ekler";
+  if (orm === "mongoose") return "// Mongoose adds the _id field itself";
   return "id: serial('id').primaryKey(),";
 }
 
@@ -257,7 +233,6 @@ function isIndexed(table: ParsedTable, columnKey: string): boolean {
   if (table.compositePrimaryKey[0] === columnKey) return true;
   const column = table.columns.find((item) => item.key === columnKey);
   if (column?.isPrimaryKey || column?.isUnique) return true;
-  // Bileşik index'te ilk kolon olmak da tarama için yeterlidir.
   return table.indexes.some((index) => index.columns[0] === columnKey);
 }
 

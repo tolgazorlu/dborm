@@ -7,21 +7,6 @@ import { MAX_SOURCE_BYTES, readLimitedJson } from "@/lib/security/body";
 import { checkParseQuota, tooManyRequests } from "@/lib/security/quota";
 import { clientKey } from "@/lib/security/rate-limit";
 
-/**
- * Ayrıştırma neden sunucuda?
- *
- * ts-morph, TypeScript derleyicisini de beraberinde getirir (~6 MB). Bunu
- * istemci paketine koymak ilk yükleme süresini uçurur. Route handler'da
- * çalıştırınca istemci sadece JSON indirir; debounce sonrası çağrıldığı için
- * gecikme hissedilmez.
- *
- * Parser'lar saf fonksiyon (`lib/orm/*`), tarayıcıda çalıştırmak isterseniz
- * aynı fonksiyonu bir Web Worker içinde çağırmanız yeterli.
- *
- * Bedeli de burada: her istek derleyiciyi çalıştırıyor. Girdi boyutu ve istek
- * sayısı bu yüzden sınırlı — aksi halde tek bir istemci CPU'yu doldurabilir.
- */
-
 export async function POST(request: Request): Promise<Response> {
   const denied = checkParseQuota(clientKey(request));
   if (denied) {

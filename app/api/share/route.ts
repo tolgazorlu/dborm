@@ -6,16 +6,6 @@ import { checkShareCreateQuota, tooManyRequests } from "@/lib/security/quota";
 import { clientKey } from "@/lib/security/rate-limit";
 import { createShare } from "@/lib/share/store";
 
-/**
- * Tek kullanımlık paylaşım linki oluşturur.
- *
- * Link `/s/<token>` adresine işaret eder; o sayfa açıldığında içerik **okunup
- * silinir**, ikinci ziyarette artık yoktur. Mutlak URL'i istekten türetiyoruz
- * ki tünel/farklı port/farklı alan adı durumlarında da doğru çalışsın.
- *
- * Her kayıt diske yazdığı için istek sayısı sınırlı: sınırsız olsaydı diski
- * doldurmak bedava bir saldırı olurdu.
- */
 export async function POST(request: Request): Promise<Response> {
   const denied = checkShareCreateQuota(clientKey(request));
   if (denied) {
@@ -42,7 +32,6 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ error: messages.schemaRequired }, { status: 400 });
   }
 
-  // Yalnızca bu ORM'e ait dosya anahtarlarını saklıyoruz.
   const sources: Record<string, string> = {};
   for (const file of ORM_CATALOG[orm].files) {
     const value = (rawSources as Record<string, unknown>)[file.key];

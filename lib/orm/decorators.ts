@@ -8,18 +8,9 @@ import {
   unwrapToExpression,
 } from "./ast-utils";
 
-/**
- * Dekoratör tabanlı ORM'ler (TypeORM, MikroORM) için ortak okuyucular.
- *
- * İkisi de aynı şekli kullanır: sınıf `@Entity()`, alanlar `@Column()` /
- * `@Property()` ve ilişkiler `@ManyToOne(() => Hedef, ...)`. Farklar
- * (seçenek adları, ilişki alanının kolon olup olmaması) parser'lara bırakıldı.
- */
-
 export interface ReadDecorator {
   name: string;
   args: Node[];
-  /** İlk obje literali argümanının düz kayda çevrilmiş hâli */
   options: Record<string, unknown>;
 }
 
@@ -45,13 +36,6 @@ export function hasDecorator(decorators: ReadDecorator[], ...names: string[]): b
   return decorators.some((decorator) => names.includes(decorator.name));
 }
 
-/**
- * Dekoratör seçeneklerindeki string dizisini okur:
- * `@Index({ properties: ['a', 'b'] })` → ['a', 'b']
- *
- * `objectArgToRecord` dizi değerlerini ham metne çevirdiği için burada
- * doğrudan AST'den okuyoruz.
- */
 export function optionStringArray(decorator: ReadDecorator, key: string): string[] {
   const object = decorator.args.find(Node.isObjectLiteralExpression);
   const property = object?.getProperty(key);
@@ -59,7 +43,6 @@ export function optionStringArray(decorator: ReadDecorator, key: string): string
   return stringArrayElements(property.getInitializer());
 }
 
-/** `@Entity('users')` ya da `@Entity({ tableName: 'users' })` → 'users' */
 export function entityTableName(decorator: ReadDecorator | undefined, fallback: string): string {
   if (!decorator) return fallback;
 
@@ -70,10 +53,6 @@ export function entityTableName(decorator: ReadDecorator | undefined, fallback: 
   return typeof named === "string" ? named : fallback;
 }
 
-/**
- * `@ManyToOne(() => User, ...)` içindeki hedef sınıfı çıkarır.
- * Ok fonksiyonu, doğrudan tanımlayıcı ve `'User'` metin biçimini destekler.
- */
 export function relationTarget(decorator: ReadDecorator): string | undefined {
   for (const arg of decorator.args) {
     const unwrapped = unwrapToExpression(arg);
@@ -82,7 +61,6 @@ export function relationTarget(decorator: ReadDecorator): string | undefined {
     if (Node.isIdentifier(unwrapped)) return unwrapped.getText();
     if (Node.isStringLiteral(unwrapped)) return unwrapped.getLiteralValue();
 
-    // `() => [User]` gibi dizi biçimleri
     if (Node.isArrayLiteralExpression(unwrapped)) {
       const first = unwrapped.getElements()[0];
       if (first && Node.isIdentifier(first)) return first.getText();
@@ -91,7 +69,6 @@ export function relationTarget(decorator: ReadDecorator): string | undefined {
   return undefined;
 }
 
-/** `(post) => post.author` → 'author' (karşı taraftaki alan adı) */
 export function inverseFieldName(decorator: ReadDecorator): string | undefined {
   for (const arg of decorator.args) {
     if (!Node.isArrowFunction(arg)) continue;
@@ -101,12 +78,10 @@ export function inverseFieldName(decorator: ReadDecorator): string | undefined {
   return undefined;
 }
 
-/** Sınıf üyesinin TypeScript tip metni: `string`, `Date`, `User`, `Post[]` */
 export function propertyTypeText(property: PropertyDeclaration): string {
   const typeNode = property.getTypeNode();
   if (typeNode) return typeNode.getText();
 
-  // Tip yazılmamışsa başlangıç değerinden tahmin et: `name = ''` → string
   const initializer = property.getInitializer();
   if (!initializer) return "unknown";
   if (Node.isStringLiteral(initializer)) return "string";
@@ -114,7 +89,6 @@ export function propertyTypeText(property: PropertyDeclaration): string {
   return "unknown";
 }
 
-/** `string | null`, `Post[]`, `Collection<Post>` gibi sarmalayıcıları soyar. */
 export function unwrapTypeText(text: string): {
   base: string;
   isArray: boolean;

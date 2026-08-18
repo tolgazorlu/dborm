@@ -13,15 +13,6 @@ interface I18nContextValue {
 
 const I18nContext = createContext<I18nContextValue | null>(null);
 
-/**
- * Dil tercihi çerezde tutuluyor — temanın aksine.
- *
- * Tema bir öznitelik olduğu için satır içi script ile düzeltilebiliyordu; dil
- * ise metnin kendisini değiştirir. `localStorage`'tan okunsaydı sunucunun
- * ürettiği HTML ile istemcinin ürettiği metin uyuşmaz, her metin düğümünde
- * hydration hatası olurdu. Çerez, istekle birlikte sunucuya gittiği için
- * sunucu doğru dilde render edebiliyor: uyuşmazlık da yok, geçiş anı da yok.
- */
 export function I18nProvider({
   initialLocale,
   children,
@@ -47,6 +38,6 @@ export function I18nProvider({
 
 export function useI18n(): I18nContextValue {
   const context = useContext(I18nContext);
-  if (!context) throw new Error("useI18n, I18nProvider içinde kullanılmalı.");
+  if (!context) throw new Error("useI18n must be used inside I18nProvider.");
   return context;
 }

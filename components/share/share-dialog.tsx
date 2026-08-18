@@ -16,12 +16,6 @@ interface ShareResult {
   expiresAt: number;
 }
 
-/**
- * Header'daki "Paylaş" düğmesi ve sonuç kutusu.
- *
- * Link tek kullanımlık olduğu için kullanıcıya bunu net söylemek gerekiyor:
- * yanlışlıkla kendisi açarsa karşı taraf artık açamaz.
- */
 export default function ShareDialog({ orm, sources }: ShareDialogProps) {
   const { t, locale } = useI18n();
   const [isOpen, setIsOpen] = useState(false);

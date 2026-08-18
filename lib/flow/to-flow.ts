@@ -15,22 +15,10 @@ import type { FlowGraph, RelationEdge, RelationEdgeData, TableNode } from "./typ
 
 export interface BuildFlowOptions {
   direction?: LayoutDirection;
-  /** Vurgulanacak tablo → kolon anahtarları. Boşsa hiçbir şey soluklaştırılmaz. */
   highlight?: Record<string, string[]>;
-  /** Aktif temanın ok renkleri (React Flow CSS sınıfı değil, düz renk ister). */
   palette: FlowPalette;
 }
 
-/**
- * ParsedSchema → React Flow node/edge grafiği.
- *
- * İki tür ok üretilir:
- *  - **fk**: `.references()` / `foreignKey()` ile tanımlı, veritabanı seviyesinde
- *    garanti edilen ilişki (düz çizgi).
- *  - **logical**: yalnızca `relations()` içinde tanımlı, FK karşılığı olmayan
- *    ilişki (kesik çizgi). Bu ayrım, "relation var ama FK yok" hatasını
- *    diyagramda anında görünür kılar.
- */
 export function buildFlow(schema: ParsedSchema, options: BuildFlowOptions): FlowGraph {
   const { direction = "LR", highlight, palette } = options;
 
@@ -41,8 +29,6 @@ export function buildFlow(schema: ParsedSchema, options: BuildFlowOptions): Flow
     id: table.id,
     type: "table",
     position: { x: 0, y: 0 },
-    // Boyutları zaten kendimiz hesaplıyoruz (dagre için). Node'a da yazınca
-    // React Flow ölçüm beklemeden doğru `fitView` yapabiliyor.
     width: NODE_WIDTH,
     height: nodeHeight(table),
     handles: tableHandles(table),
@@ -57,7 +43,6 @@ export function buildFlow(schema: ParsedSchema, options: BuildFlowOptions): Flow
   const columnPairs = new Set<string>();
   const tablePairs = new Set<string>();
 
-  // 1) Veritabanı seviyesindeki foreign key'ler.
   for (const table of schema.tables) {
     for (const column of table.columns) {
       const reference = column.reference;
@@ -70,7 +55,6 @@ export function buildFlow(schema: ParsedSchema, options: BuildFlowOptions): Flow
 
       edges.push(
         makeEdge(palette, `fk:${pair}`, table.id, reference.table, {
-          // Adlandırmadan çıkarılan referanslar (Kysely) "kesin" değildir.
           kind: reference.isInferred ? "logical" : "fk",
           cardinality: isUniqueColumn(table, column.key) ? "1:1" : "N:1",
           onDelete: reference.onDelete,
@@ -81,11 +65,9 @@ export function buildFlow(schema: ParsedSchema, options: BuildFlowOptions): Flow
     }
   }
 
-  // 2) relations() içinde tanımlı ama FK karşılığı olmayan mantıksal ilişkiler.
   for (const relation of schema.relations) {
     if (!tables.has(relation.sourceTable) || !tables.has(relation.targetTable)) continue;
 
-    // FK'yi tutan taraf: `one` ise kaynak, `many` ise hedef tablo.
     const child = relation.kind === "one" ? relation.sourceTable : relation.targetTable;
     const parent = relation.kind === "one" ? relation.targetTable : relation.sourceTable;
     const childColumn = relation.kind === "one" ? relation.fields[0] : undefined;
@@ -108,8 +90,6 @@ export function buildFlow(schema: ParsedSchema, options: BuildFlowOptions): Flow
       continue;
     }
 
-    // Kolon bilgisi yok (`many(...)` ya da fields'sız `one(...)`): iki tablo
-    // arasında zaten bir ok varsa tekrar çizme, yoksa tablo seviyesinde çiz.
     const key = unordered(child, parent);
     if (tablePairs.has(key)) continue;
     tablePairs.add(key);
@@ -155,14 +135,6 @@ function makeEdge(
   };
 }
 
-/**
- * Yerleşim bittikten sonra okların hangi kenardan çıkacağını belirler:
- * hedef sağdaysa sağ tutamaçtan çık, solundaysa sol tutamaçtan. Böylece
- * çizgiler node'un etrafında dolanmaz.
- *
- * Kullanıcı bir tabloyu sürükleyince canvas bunu yeniden çağırır; oklar
- * anında doğru kenara geçer.
- */
 export function attachHandles(nodes: TableNode[], edges: RelationEdge[]): RelationEdge[] {
   const x = new Map(nodes.map((node) => [node.id, node.position.x]));
 

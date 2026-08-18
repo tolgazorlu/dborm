@@ -13,22 +13,6 @@ import {
 } from "../types";
 import { parseFailureMessage, validateSchema } from "../validate";
 
-/**
- * Kysely'de şema, çalışma zamanında var olan bir nesne değil; yalnızca
- * TypeScript arayüzleridir:
- *
- *   interface UserTable { id: Generated<number>; email: string }
- *   interface Database { users: UserTable; posts: PostTable }
- *
- * Bunun iki sonucu var:
- *
- * 1. Tablo adları `Database` arayüzündeki anahtarlardan gelir.
- * 2. **İlişki bilgisi hiç yoktur.** Yabancı anahtarlar veritabanında tanımlıdır
- *    ama tip katmanına yansımaz. Bu yüzden ilişkiler adlandırma kuralından
- *    çıkarılır (`author_id` → `authors`/`users`) ve `isInferred` ile işaretlenir;
- *    diyagramda kesik çizgiyle, yani "tahmin" olarak görünürler.
- */
-
 const TYPE_MAP: Record<string, string> = {
   string: "text",
   number: "numeric",
@@ -54,11 +38,9 @@ export function parseKyselySchema(files: ParserFile[], locale: Locale = "tr"): P
     const tables: ParsedTable[] = [];
     for (const declaration of interfaces) {
       const name = declaration.getName();
-      // `Database` haritasının kendisi bir tablo değil.
       if (databaseMap.registry === name) continue;
 
       const tableName = databaseMap.byInterface.get(name);
-      // Harita varsa yalnızca orada geçen arayüzler tablodur.
       if (databaseMap.registry && !tableName) continue;
 
       tables.push(parseTableInterface(declaration, tableName ?? name));
@@ -94,7 +76,6 @@ export function parseKyselySchema(files: ParserFile[], locale: Locale = "tr"): P
   }
 }
 
-/** Tablo adı → arayüz adı eşlemesini taşıyan `Database` arayüzünü bulur. */
 function findDatabaseMap(sourceFiles: SourceFile[]): {
   registry?: string;
   byInterface: Map<string, string>;
@@ -106,7 +87,6 @@ function findDatabaseMap(sourceFiles: SourceFile[]): {
       const members = declaration.getProperties();
       if (members.length === 0) continue;
 
-      // Tüm üyeleri başka bir arayüze işaret ediyorsa bu bir tablo haritasıdır.
       const targets = members.map((member) => member.getTypeNode()?.getText() ?? "");
       const interfaceNames = new Set(
         sourceFiles.flatMap((file) => file.getInterfaces().map((item) => item.getName())),
@@ -160,11 +140,6 @@ function parseColumn(key: string, typeText: string, isOptional: boolean): Parsed
     name: key,
     type: TYPE_MAP[base] ?? base,
     displayType: `${TYPE_MAP[base] ?? base}${isArray ? "[]" : ""}`,
-    /**
-     * Kysely tipleri birincil anahtarı ifade etmez. `Generated<>` ile
-     * işaretlenmiş `id` kolonunu birincil anahtar sayıyoruz: yaygın kural bu ve
-     * aksi hâlde her tablo "birincil anahtar yok" uyarısı üretirdi.
-     */
     isPrimaryKey: Boolean(generated) && key === "id",
     isNotNull: !isNullable && !isOptional,
     isUnique: false,
@@ -174,10 +149,6 @@ function parseColumn(key: string, typeText: string, isOptional: boolean): Parsed
   };
 }
 
-/**
- * `author_id` / `authorId` → `authors` ya da `users` tablosunu arar.
- * Bulunursa referansı "çıkarım" olarak işaretler.
- */
 function inferReferences(tables: ParsedTable[]): void {
   const byNormalizedName = new Map<string, ParsedTable>();
   for (const table of tables) {
@@ -201,7 +172,6 @@ function inferReferences(tables: ParsedTable[]): void {
   }
 }
 
-/** `users`, `UserTable`, `user` → `user` */
 function normalize(value: string): string {
   return value
     .replace(/Table$/, "")

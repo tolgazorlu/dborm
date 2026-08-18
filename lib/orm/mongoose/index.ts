@@ -14,19 +14,6 @@ import {
 } from "../types";
 import { parseFailureMessage, validateSchema } from "../validate";
 
-/**
- * Mongoose şemaları düz TypeScript olduğu için Drizzle ile aynı ts-morph
- * altyapısını kullanır; okuduğu kalıplar farklıdır:
- *
- *   const userSchema = new Schema({ email: { type: String, unique: true } });
- *   export const User = mongoose.model('User', userSchema);
- *
- * İlişkiler `ref: 'User'` ile kurulur — yani hedef, değişken değil **model
- * adıdır**. Bu yüzden önce şema değişkeni → model adı eşlemesi çıkarılır,
- * tablo kimliği olarak model adı kullanılır.
- */
-
-/** Mongoose her belgeye otomatik olarak bu alanı ekler. */
 const IMPLICIT_ID: ParsedColumn = {
   key: "_id",
   name: "_id",
@@ -72,7 +59,6 @@ export function parseMongooseSchema(files: ParserFile[], locale: Locale = "tr"):
     diagnostics.push(...syntacticDiagnostics(project, sourceFiles));
 
     const schemas = new Map<string, SchemaDeclaration>();
-    // şema değişkeni → model adı
     const modelNames = new Map<string, string>();
 
     for (const sourceFile of sourceFiles) {
@@ -91,7 +77,6 @@ export function parseMongooseSchema(files: ParserFile[], locale: Locale = "tr"):
       relations.push(...fieldRelations);
     }
 
-    // `postSchema.index({ title: 1 }, { unique: true })` çağrıları
     for (const sourceFile of sourceFiles) {
       applyIndexCalls(sourceFile, schemas, modelNames, tables);
     }
@@ -143,7 +128,6 @@ function collectSchemas(sourceFile: SourceFile, schemas: Map<string, SchemaDecla
   }
 }
 
-/** `mongoose.model('User', userSchema)` → userSchema = 'User' */
 function collectModels(sourceFile: SourceFile, modelNames: Map<string, string>): void {
   sourceFile.forEachDescendant((node) => {
     if (!Node.isCallExpression(node)) return;
@@ -168,9 +152,6 @@ function buildTable(modelName: string, declaration: SchemaDeclaration): ParsedTa
 
   const table: ParsedTable = {
     id: modelName,
-    // Koleksiyon adı yalnızca açıkça verilmişse kullanılır. Mongoose adı
-    // kendi çoğullaştırma kurallarıyla türetir; tahmin etmek yanlış bilgi
-    // üretme riski taşıdığı için model adında kalıyoruz.
     name: typeof explicitCollection === "string" ? explicitCollection : modelName,
     dialect: "mongo",
     columns: [IMPLICIT_ID],
@@ -200,7 +181,6 @@ function buildColumn(key: string, initializer: Expression, table: ParsedTable): 
   let node: Expression = initializer;
   let isArray = false;
 
-  // `tags: [String]` ya da `authors: [{ type: ObjectId, ref: 'User' }]`
   if (Node.isArrayLiteralExpression(node)) {
     isArray = true;
     const first = node.getElements()[0];
@@ -210,7 +190,6 @@ function buildColumn(key: string, initializer: Expression, table: ParsedTable): 
   const descriptor = Node.isObjectLiteralExpression(node) ? objectProperties(node) : null;
   const typeNode = descriptor ? descriptor.get("type") : node;
 
-  // `type` anahtarı olmayan obje literali gömülü alt belgedir.
   const isEmbedded = Boolean(descriptor) && !typeNode;
   const type = isEmbedded ? "Object" : typeName(typeNode);
 
@@ -242,7 +221,6 @@ function buildColumn(key: string, initializer: Expression, table: ParsedTable): 
   };
 }
 
-/** `ref:` içeren her alan aynı zamanda mantıksal bir ilişkidir. */
 function collectFieldRelations(
   modelName: string,
   table: ParsedTable,
@@ -312,7 +290,6 @@ function objectProperties(node: Expression | undefined): Map<string, Expression>
   return result;
 }
 
-/** `Schema.Types.ObjectId` → `ObjectId`, `String` → `String` */
 function typeName(node: Expression | undefined): string {
   if (!node) return "Mixed";
   const text = node.getText();

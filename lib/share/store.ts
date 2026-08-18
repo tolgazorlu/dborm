@@ -4,27 +4,12 @@ import path from "node:path";
 
 import type { OrmId } from "@/lib/orm/types";
 
-/**
- * Tek kullanımlık paylaşım deposu.
- *
- * Depolama dosya sistemi: harici bir bağımlılık (Redis/KV) getirmeden çalışsın
- * diye. Bu, tek süreçli bir sunucuda (dev, `next start`, Docker) doğru çalışır;
- * serverless'ta her örnek kendi diskini gördüğü için üretimde bu modülü
- * Redis/Vercel KV ile değiştirin — dışa açılan dört fonksiyon aynı kalabilir.
- *
- * "Tek kullanım" garantisi `rename` ile sağlanıyor: POSIX'te rename atomiktir,
- * dolayısıyla aynı anda gelen iki istekten yalnızca biri dosyayı ele geçirir,
- * diğeri ENOENT alır.
- */
-
 const DATA_DIR = path.join(process.cwd(), ".data", "shares");
 const TOKEN_PATTERN = /^[A-Za-z0-9_-]{22,64}$/;
 const DEFAULT_TTL_MS = 24 * 60 * 60 * 1000;
 
 export interface SharePayload {
-  /** Şemanın hangi ORM ile açılacağı — karşı taraf doğru sekmeleri görsün diye. */
   orm: OrmId;
-  /** Dosya anahtarı → içerik (ör. `{ schema: "...", relations: "..." }`) */
   sources: Record<string, string>;
 }
 
@@ -39,7 +24,6 @@ export interface ShareMeta {
 }
 
 function filePath(token: string): string {
-  // Token doğrulanmadan asla dosya yoluna girmemeli (path traversal).
   if (!TOKEN_PATTERN.test(token)) throw new Error("INVALID_TOKEN");
   return path.join(DATA_DIR, `${token}.json`);
 }
@@ -63,7 +47,6 @@ export async function createShare(
   return { token, record };
 }
 
-/** Kaydı tüketmeden var mı / süresi geçmiş mi diye bakar. */
 export async function peekShare(token: string): Promise<ShareMeta | null> {
   if (!isValidToken(token)) return null;
 
@@ -79,9 +62,6 @@ export async function peekShare(token: string): Promise<ShareMeta | null> {
   }
 }
 
-/**
- * Kaydı okur ve **kalıcı olarak siler**. İkinci çağrı her zaman null döner.
- */
 export async function consumeShare(token: string): Promise<SharePayload | null> {
   if (!isValidToken(token)) return null;
 
@@ -89,7 +69,6 @@ export async function consumeShare(token: string): Promise<SharePayload | null> 
   const claimed = `${source}.claimed-${randomBytes(6).toString("hex")}`;
 
   try {
-    // Yarışı burası çözüyor: rename'i kim kazanırsa kaydı o alır.
     await rename(source, claimed);
   } catch {
     return null;
@@ -106,7 +85,6 @@ export async function consumeShare(token: string): Promise<SharePayload | null> 
   }
 }
 
-/** Süresi dolmuş kayıtları temizler; her oluşturmada tembel olarak çağrılır. */
 async function sweepExpired(): Promise<void> {
   try {
     const entries = await readdir(DATA_DIR);
@@ -117,7 +95,6 @@ async function sweepExpired(): Promise<void> {
         const target = path.join(DATA_DIR, entry);
         try {
           if (!entry.endsWith(".json")) {
-            // Yarıda kalmış `.claimed-*` dosyaları
             await rm(target, { force: true });
             return;
           }
@@ -128,7 +105,5 @@ async function sweepExpired(): Promise<void> {
         }
       }),
     );
-  } catch {
-    // Dizin henüz yoksa temizlenecek bir şey de yoktur.
-  }
+  } catch {}
 }

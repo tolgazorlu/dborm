@@ -2,19 +2,6 @@ import { z } from "zod";
 
 import { CATEGORIES, SEVERITIES } from "@/lib/analysis/types";
 
-/**
- * AI çıktısının sözleşmesi. Hem sunucuda (`Output.object`) hem de istemcide
- * (`useObject`) aynı şema kullanılır; böylece akış sırasında gelen kısmi
- * JSON'lar tip güvenli biçimde render edilir.
- *
- * Açıklamalar İngilizce ve dilden bağımsız: çıktının hangi dilde yazılacağı
- * sistem prompt'unda söyleniyor (bkz. `lib/ai/prompt.ts`).
- *
- * Opsiyonel alanlar `.optional()` yerine `.nullable()`: yapılandırılmış çıktı
- * modlarının çoğu tüm alanların `required` olmasını ister ve `minimum` /
- * `maxItems` gibi kısıt anahtarlarını kabul etmez, bu yüzden sınırlar şema
- * yerine `.describe()` ve prompt ile ifade ediliyor.
- */
 export const analysisSchema = z.object({
   summary: z.string().describe("2-3 sentence overall assessment of the schema."),
   healthScore: z.number().describe("Overall schema health from 0 to 100. 100 = no issues."),

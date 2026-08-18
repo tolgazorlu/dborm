@@ -14,16 +14,6 @@ import {
 } from "../types";
 import { parseFailureMessage, validateSchema } from "../validate";
 
-/**
- * Sequelize modellerini okur — hem `sequelize.define(...)` hem de
- * `class X extends Model { }` + `X.init(...)` biçimini.
- *
- * İlişkiler model tanımında değil, ayrı çağrılarda kurulur
- * (`Post.belongsTo(User, { foreignKey })`). Sequelize bu çağrılarda adı geçen
- * yabancı anahtar kolonunu şemada tanımlı olmasa bile kendisi oluşturur; biz de
- * eksikse ekliyoruz, aksi halde diyagramda okun bağlanacağı bir satır olmazdı.
- */
-
 const IMPLICIT_ID: ParsedColumn = {
   key: "id",
   name: "id",
@@ -93,7 +83,6 @@ export function parseSequelizeSchema(files: ParserFile[], locale: Locale = "tr")
   }
 }
 
-/** `const User = sequelize.define('User', { ... }, { ... })` */
 function collectDefineCalls(sourceFile: SourceFile, models: Map<string, ModelDeclaration>): void {
   for (const declaration of sourceFile.getVariableDeclarations()) {
     const initializer = declaration.getInitializer();
@@ -117,7 +106,6 @@ function collectDefineCalls(sourceFile: SourceFile, models: Map<string, ModelDec
   }
 }
 
-/** `User.init({ ... }, { sequelize, modelName: 'User' })` */
 function collectInitCalls(sourceFile: SourceFile, models: Map<string, ModelDeclaration>): void {
   sourceFile.forEachDescendant((node) => {
     if (!Node.isCallExpression(node)) return;
@@ -177,12 +165,10 @@ function buildTable(
     }
   }
 
-  // Sequelize birincil anahtar verilmemişse `id` kolonunu kendisi ekler.
   if (!table.columns.some((column) => column.isPrimaryKey)) {
     table.columns.unshift(IMPLICIT_ID);
   }
 
-  // `timestamps` varsayılan olarak açıktır.
   if (literalValue(options.get("timestamps")) !== false) {
     for (const key of TIMESTAMP_KEYS) {
       if (table.columns.some((column) => column.key === key)) continue;
@@ -206,7 +192,6 @@ function buildTable(
 }
 
 function buildColumn(key: string, initializer: Expression, table: ParsedTable): ParsedColumn {
-  // Kısa yazım: `name: DataTypes.STRING`
   const descriptor = Node.isObjectLiteralExpression(initializer) ? objectProperties(initializer) : null;
   const typeNode = descriptor ? descriptor.get("type") : initializer;
   const type = dataTypeName(typeNode);
@@ -244,7 +229,6 @@ function buildColumn(key: string, initializer: Expression, table: ParsedTable): 
   };
 }
 
-/** `Post.belongsTo(User, { foreignKey: 'authorId', onDelete: 'CASCADE' })` */
 function collectAssociations(
   sourceFile: SourceFile,
   models: Map<string, ModelDeclaration>,
@@ -273,7 +257,6 @@ function collectAssociations(
         ? foreignKeyValue
         : `${lowerFirst(kind === "belongsTo" ? targetId : sourceId)}Id`;
 
-    // `belongsTo` yabancı anahtarı kaynağa, `hasMany`/`hasOne` hedefe koyar.
     const childId = kind === "belongsTo" ? sourceId : targetId;
     const parentId = kind === "belongsTo" ? targetId : sourceId;
     const isMany = kind === "hasMany" || kind === "belongsToMany";
@@ -297,7 +280,6 @@ function collectAssociations(
   return relations;
 }
 
-/** Sequelize, şemada tanımlı olmayan yabancı anahtar kolonunu kendisi ekler. */
 function attachForeignKey(
   table: ParsedTable,
   foreignKey: string,
@@ -347,7 +329,6 @@ function applyIndexOption(table: ParsedTable, node: Expression | undefined): voi
   }
 }
 
-/** `DataTypes.STRING(255)` → `STRING(255)`, `DataTypes.INTEGER` → `INTEGER` */
 function dataTypeName(node: Expression | undefined): string {
   if (!node) return "UNKNOWN";
 
@@ -367,7 +348,6 @@ function dataTypeName(node: Expression | undefined): string {
   return text.startsWith("DataTypes.") ? text.slice("DataTypes.".length) : text;
 }
 
-/** `DataTypes.ENUM('a', 'b')` → ['a', 'b'] */
 function enumValuesOf(node: Expression | undefined): string[] | undefined {
   if (!node || !Node.isCallExpression(node)) return undefined;
   if (!/ENUM$/.test(node.getExpression().getText())) return undefined;
@@ -380,7 +360,6 @@ function enumValuesOf(node: Expression | undefined): string[] | undefined {
   return values.length > 0 ? values : undefined;
 }
 
-/** `references: { model: User }` ya da `{ model: 'users' }` */
 function modelReferenceName(node: Expression): string {
   const value = literalValue(node);
   return typeof value === "string" ? value : node.getText();

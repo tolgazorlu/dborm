@@ -4,17 +4,8 @@ import { checkShareOpenQuota, tooManyRequests } from "@/lib/security/quota";
 import { clientKey } from "@/lib/security/rate-limit";
 import { consumeShare, peekShare } from "@/lib/share/store";
 
-/** Paylaşım yanıtları hiçbir katmanda önbelleğe alınmamalı. */
 const NO_STORE = { "Cache-Control": "no-store" };
 
-/**
- * GET **tüketmez**, sadece linkin hâlâ geçerli olup olmadığına bakar.
- *
- * Tüketmenin GET'te olmaması bilinçli: mesajlaşma uygulamalarının link
- * önizlemesi, tarayıcı ön-getirmesi ya da antivirüs taraması bir GET atar ve
- * link kullanıcı görmeden yanardı. Bu yüzden içerik yalnızca kullanıcının
- * bilerek tetiklediği POST ile açılır.
- */
 export async function GET(
   request: Request,
   context: RouteContext<"/api/share/[token]">,
@@ -33,7 +24,6 @@ export async function GET(
   return Response.json({ available: true, ...meta }, { headers: NO_STORE });
 }
 
-/** İçeriği döndürür ve kaydı kalıcı olarak siler. */
 export async function POST(
   request: Request,
   context: RouteContext<"/api/share/[token]">,

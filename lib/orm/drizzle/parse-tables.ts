@@ -25,7 +25,6 @@ import type {
   ParsedTable,
 } from "../types";
 
-/** Tablo üreten fabrika fonksiyonları ve ait oldukları lehçe. */
 const TABLE_FACTORIES: Record<string, Dialect> = {
   pgTable: "pg",
   mysqlTable: "mysql",
@@ -66,7 +65,6 @@ function tableFactoryOf(declaration: VariableDeclaration): Dialect | undefined {
   return TABLE_FACTORIES[callee.getText()];
 }
 
-/** `export const roleEnum = pgEnum('role', ['admin', 'user'])` */
 export function parseEnumDeclaration(declaration: VariableDeclaration): ParsedEnum | undefined {
   const initializer = declaration.getInitializer();
   if (!initializer || !Node.isCallExpression(initializer)) return undefined;
@@ -79,11 +77,6 @@ export function parseEnumDeclaration(declaration: VariableDeclaration): ParsedEn
   };
 }
 
-/**
- * `export const users = pgTable('users', { ... }, (t) => [ ... ])` bildirimini
- * ParsedTable'a çevirir. Üçüncü argüman (index/unique/composite PK callback'i)
- * hem eski obje formunu hem yeni dizi formunu destekler.
- */
 export function parseTableDeclaration(
   declaration: VariableDeclaration,
   enums: Map<string, ParsedEnum>,
@@ -137,7 +130,6 @@ function parseColumn(
   const enumDefinition = enums.get(chain.baseName);
   const isArray = hasCall(chain, "array");
 
-  // `text('role', { enum: ['admin', 'user'] })` — satır içi enum tanımı
   const inlineEnumValues = chain.baseArgs
     .filter(Node.isObjectLiteralExpression)
     .flatMap((arg) => arg.getProperties())
@@ -168,7 +160,6 @@ function parseColumn(
   };
 }
 
-/** `.references(() => users.id, { onDelete: 'cascade' })` */
 function parseColumnReference(chain: UnwrappedChain): ColumnReference | undefined {
   const call = findCall(chain, "references");
   if (!call) return undefined;
@@ -208,11 +199,6 @@ function buildDisplayType(
   return isArray ? `${display}[]` : display;
 }
 
-/**
- * Üçüncü argümandaki index / unique / primaryKey / foreignKey tanımlarını okur.
- * Hem `(t) => ({ emailIdx: uniqueIndex(...) })` hem `(t) => [uniqueIndex(...)]`
- * biçimlerini destekler.
- */
 function applyTableExtras(table: ParsedTable, extrasArg: Node | undefined): void {
   const body = unwrapToExpression(extrasArg);
   if (!body) return;
@@ -251,7 +237,6 @@ function applyTableExtras(table: ParsedTable, extrasArg: Node | undefined): void
         if (columnsProperty && Node.isPropertyAssignment(columnsProperty)) {
           table.compositePrimaryKey = referencedColumnKeys(columnsProperty.getInitializer());
         } else {
-          // `primaryKey(t.a, t.b)` (eski imza)
           table.compositePrimaryKey = chain.baseArgs
             .map((arg) => qualifiedReference(arg)?.property)
             .filter((value): value is string => Boolean(value));
@@ -283,7 +268,6 @@ function parseIndex(chain: UnwrappedChain, isUnique: boolean): ParsedIndex | und
   };
 }
 
-/** `foreignKey({ columns: [t.a], foreignColumns: [other.id] }).onDelete('cascade')` */
 function applyCompositeForeignKey(table: ParsedTable, chain: UnwrappedChain): void {
   const options = chain.baseArgs.find(Node.isObjectLiteralExpression);
   if (!options) return;

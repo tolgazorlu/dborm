@@ -1,14 +1,5 @@
 import type { Theme } from "@/components/theme-provider";
 
-/**
- * Monaco ve React Flow renkleri CSS sınıfı değil, düz hex değer ister.
- * Renkleri ikinci kez TypeScript'te tanımlamak yerine `globals.css`'teki
- * değişkenleri okuyoruz — tek kaynak, kopya yok.
- *
- * Sunucu render'ında `getComputedStyle` yok; o durumda aşağıdaki yedek
- * değerler kullanılıyor (koyu tema, sunucunun varsayılan `data-theme` değeri).
- */
-
 export interface FlowPalette {
   fk: string;
   logical: string;
@@ -51,11 +42,6 @@ const CODE_FALLBACK: CodePalette = {
   punctuation: "#7d8798",
 };
 
-/**
- * CSS derleyicisi hex renkleri kısaltıyor: `#ffffff` → `#fff`. Monaco ise
- * yalnızca 6/8 haneli hex kabul eder ve kısasını görünce istisna fırlatır.
- * Bu yüzden okuduğumuz her değeri uzun forma geri açıyoruz.
- */
 function expandHex(value: string): string {
   const match = /^#([0-9a-f])([0-9a-f])([0-9a-f])([0-9a-f])?$/i.exec(value);
   if (!match) return value;

@@ -43,7 +43,7 @@ function parseExample() {
   ]);
 }
 
-test("tabloları ve lehçeyi çıkarır", () => {
+test("derives tables and the dialect", () => {
   const schema = parseExample();
   assert.equal(schema.dialect, "pg");
   assert.deepEqual(
@@ -53,7 +53,7 @@ test("tabloları ve lehçeyi çıkarır", () => {
   assert.equal(schema.tables[0].name, "users");
 });
 
-test("kolon adlarını, tiplerini ve kısıtlarını okur", () => {
+test("reads column names, types and constraints", () => {
   const users = parseExample().tables.find((table) => table.id === "users")!;
 
   assert.deepEqual(
@@ -77,7 +77,7 @@ test("kolon adlarını, tiplerini ve kısıtlarını okur", () => {
   assert.equal(createdAt.isNotNull, true);
 });
 
-test("foreign key referansını onDelete ile birlikte çözer", () => {
+test("resolves a foreign key reference together with onDelete", () => {
   const posts = parseExample().tables.find((table) => table.id === "posts")!;
   const authorId = posts.columns.find((column) => column.key === "authorId")!;
 
@@ -94,7 +94,7 @@ test("foreign key referansını onDelete ile birlikte çözer", () => {
   assert.equal(content.reference, undefined);
 });
 
-test("one/many ilişkilerini fields ve references ile ayrıştırır", () => {
+test("parses one/many relations with fields and references", () => {
   const { relations } = parseExample();
 
   assert.deepEqual(
@@ -116,12 +116,12 @@ test("one/many ilişkilerini fields ve references ile ayrıştırır", () => {
   assert.deepEqual(one.references, ["id"]);
 });
 
-test("örnek şema yapısal uyarı üretmez", () => {
+test("the sample schema produces no structural warnings", () => {
   const errors = parseExample().diagnostics.filter((item) => item.level !== "info");
   assert.deepEqual(errors, []);
 });
 
-test("enum, index, bileşik anahtar ve foreignKey() formlarını destekler", () => {
+test("supports enum, index, composite key and foreignKey() forms", () => {
   const schema = parseDrizzleSchema([
     {
       path: "schema.ts",
@@ -156,7 +156,6 @@ export const memberships = pgTable(
   const users = schema.tables.find((table) => table.id === "users")!;
   assert.deepEqual(schema.enums[0], { id: "roleEnum", name: "user_role", values: ["admin", "member"] });
 
-  // Adsız kolon tanımı (`uuid()`) obje anahtarına düşer.
   assert.equal(users.columns[0].name, "id");
   assert.equal(users.columns[0].hasDefault, true);
 
@@ -180,7 +179,7 @@ export const memberships = pgTable(
   assert.equal(userId.reference?.isComposite, true);
 });
 
-test("mysql ve sqlite lehçelerini tanır", () => {
+test("recognises the mysql and sqlite dialects", () => {
   const mysql = parseDrizzleSchema([
     {
       path: "schema.ts",
@@ -200,7 +199,7 @@ export const users = sqliteTable('users', { id: integer('id').primaryKey() });`,
   assert.equal(sqlite.dialect, "sqlite");
 });
 
-test("bilinmeyen referans ve eksik birincil anahtarı uyarır", () => {
+test("warns about an unknown reference and a missing primary key", () => {
   const schema = parseDrizzleSchema([
     {
       path: "schema.ts",
@@ -216,14 +215,14 @@ export const logs = pgTable('logs', {
   assert.match(messages, /bilinmeyen bir tabloya referans/);
 });
 
-test("sözdizimi hatasında çökmez, hata teşhisi döner", () => {
+test("does not crash on a syntax error and returns a diagnostic", () => {
   const schema = parseDrizzleSchema([
     { path: "schema.ts", content: "export const users = pgTable('users', {" },
   ]);
   assert.ok(schema.diagnostics.some((item) => item.level === "error"));
 });
 
-test("boş girdide boş şema döner", () => {
+test("returns an empty schema for empty input", () => {
   const schema = parseDrizzleSchema([{ path: "schema.ts", content: "   " }]);
   assert.deepEqual(schema.tables, []);
   assert.deepEqual(schema.diagnostics, []);

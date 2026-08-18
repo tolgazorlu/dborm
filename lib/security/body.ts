@@ -1,20 +1,6 @@
-/**
- * İstek gövdesini **sınırlı** okur.
- *
- * App Router'ın route handler'larında gövde boyutu için yerleşik bir tavan yok
- * (Pages Router'daki `bodyParser.sizeLimit` karşılığı bulunmuyor). `await
- * request.json()` çağrısı gövdeyi sonuna kadar belleğe alır: tek bir istek
- * gigabaytlarca veri gönderip süreci düşürebilir.
- *
- * Burada akış elle okunuyor ve tavan aşılır aşılmaz iptal ediliyor.
- * `content-length` ön kontrolü sadece hızlı yol: başlık yalan söyleyebilir ya
- * da chunked gövdede hiç bulunmayabilir, asıl güvence sayaçtır.
- */
 
-/** Kullanıcı kodunun (tüm sekmeler toplamı) üst sınırı. */
 export const MAX_SOURCE_BYTES = 256 * 1024;
 
-/** JSON kaçış karakterleri ve alan adları için pay bırakılmış gövde tavanı. */
 export const MAX_BODY_BYTES = 512 * 1024;
 
 export type BodyResult =

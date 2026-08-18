@@ -3,11 +3,6 @@
 import { useI18n } from "@/components/i18n-provider";
 import type { FindingCategory, Severity } from "@/lib/analysis/types";
 
-/**
- * Akış (streaming) sırasında AI bulgusunun her alanı henüz gelmemiş olabilir;
- * bu yüzden tüm alanlar gevşek tipli. Aynı kart hem statik kural motorunun
- * tamamlanmış bulgularını hem de yarım gelen AI bulgularını render eder.
- */
 export interface FindingLike {
   id?: string;
   severity?: Severity | null;
@@ -40,7 +35,6 @@ export default function FindingCard({ finding, onHover }: FindingCardProps) {
       onMouseLeave={() => onHover?.(null, [])}
     >
       <div className="flex flex-wrap items-center gap-1.5">
-        {/* Renkler CSS değişkenlerinden gelir; iki tema için ayrı sınıf yazmaya gerek kalmaz. */}
         <span
           className="rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide"
           style={{ background: `var(--sev-${severity}-bg)`, color: `var(--sev-${severity})` }}

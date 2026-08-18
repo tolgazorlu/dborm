@@ -2,11 +2,6 @@ import { Position } from "@xyflow/react";
 
 import type { ParsedTable } from "@/lib/orm/types";
 
-/**
- * Node boyutları hem layout (dagre) hem de TableNode bileşeni tarafından
- * kullanılır. İkisi aynı sayıları kullanmazsa oklar kolon satırlarıyla
- * hizalanmaz — bu yüzden tek kaynakta tutuluyor.
- */
 export const NODE_WIDTH = 288;
 export const HEADER_HEIGHT = 44;
 export const ROW_HEIGHT = 28;
@@ -16,7 +11,6 @@ export function nodeHeight(table: ParsedTable): number {
   return HEADER_HEIGHT + table.columns.length * ROW_HEIGHT + NODE_PADDING;
 }
 
-/** Kolon satırı yerine tablo başlığına bağlanan oklar için sanal kolon anahtarı. */
 export const TABLE_ANCHOR = "__table__";
 
 export type HandleSide = "left" | "right";
@@ -29,14 +23,6 @@ export function targetHandleId(columnKey: string, side: HandleSide): string {
   return `${columnKey}:target:${side}`;
 }
 
-/**
- * Tutamaç konumlarını DOM'dan ölçtürmek yerine hesaplayıp node'a yazıyoruz.
- *
- * React Flow, `node.handles` verilmediğinde tutamaç sınırlarını yalnızca
- * ResizeObserver ile ölçer; ölçüm gelmezse okları hiç çizmez. Satır
- * yükseklikleri zaten burada sabit olduğu için konumlar birebir hesaplanabilir
- * — hem deterministik hem de bir ölçüm turu daha ucuz.
- */
 export function tableHandles(table: ParsedTable): {
   id: string;
   type: "source" | "target";

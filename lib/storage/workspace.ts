@@ -1,28 +1,8 @@
 import { ORM_CATALOG, isOrmId } from "@/lib/orm/catalog";
 import { ORM_IDS, type OrmId } from "@/lib/orm/types";
 
-/**
- * Çalışma alanının tarayıcıda saklanması.
- *
- * **Neden `localStorage`, çerez değil?** Çerez her HTTP isteğiyle birlikte
- * sunucuya gider ve pratikte ~4 KB ile sınırlıdır; buradaki içerik ise
- * kullanıcının şema kodu — 256 KB'a kadar çıkabiliyor. Çerezde tutmak hem
- * teknik olarak imkânsız hem de gereksiz: sunucunun bu veriye ihtiyacı yok,
- * her istekte tekrar tekrar yollanması sadece bant genişliği ve sunucu
- * günlüklerine sızan veri demek olurdu. `localStorage` istemcide kalır,
- * boyut sınırı çok daha yüksektir ve sekme kapansa bile korunur.
- *
- * (Dil tercihi bunun tam tersi bir sebeple çerezde: onu **sunucunun** ilk
- * render'da bilmesi gerekiyor — bkz. `components/i18n-provider.tsx`.)
- *
- * Okunan veri her zaman doğrulanır: anahtar kullanıcının (ya da aynı alan
- * adındaki başka bir script'in) elle değiştirebileceği bir yer, bu yüzden
- * gelen içerik "güvenilmez girdi" muamelesi görüyor.
- */
-
 const STORAGE_KEY = "ormlens:workspace:v1";
 
-/** Sunucudaki girdi sınırıyla aynı; daha fazlası zaten ayrıştırılamaz. */
 const MAX_STORED_BYTES = 256 * 1024;
 
 export interface StoredWorkspace {
@@ -37,7 +17,6 @@ export function readWorkspace(): StoredWorkspace | null {
   try {
     raw = window.localStorage.getItem(STORAGE_KEY);
   } catch {
-    // Gizli sekme / kapatılmış depolama: kalıcılık olmadan devam.
     return null;
   }
   if (!raw) return null;
@@ -45,7 +24,6 @@ export function readWorkspace(): StoredWorkspace | null {
   try {
     return sanitize(JSON.parse(raw));
   } catch {
-    // Bozuk kayıt kullanıcıyı sonsuza dek boş ekranda bırakmasın.
     clearWorkspace();
     return null;
   }
@@ -59,25 +37,16 @@ export function writeWorkspace(value: StoredWorkspace): void {
 
   try {
     window.localStorage.setItem(STORAGE_KEY, serialized);
-  } catch {
-    // Kota dolduysa ya da depolama yasaklıysa sessizce vazgeç: kalıcılık
-    // konfor özelliği, uygulamanın çalışması buna bağlı değil.
-  }
+  } catch {}
 }
 
 export function clearWorkspace(): void {
   if (typeof window === "undefined") return;
   try {
     window.localStorage.removeItem(STORAGE_KEY);
-  } catch {
-    // yoksay
-  }
+  } catch {}
 }
 
-/**
- * Yalnızca kataloğun tanıdığı ORM ve dosya anahtarlarını, yalnızca string
- * değerlerle geri verir. Bilinmeyen her şey düşer; hiçbir şey kalmazsa `null`.
- */
 function sanitize(value: unknown): StoredWorkspace | null {
   if (typeof value !== "object" || value === null) return null;
 

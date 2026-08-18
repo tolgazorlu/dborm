@@ -1,21 +1,10 @@
 import { ORM_SAMPLES } from "./samples";
 import { ORM_IDS, type OrmId } from "./types";
 
-/**
- * ORM'lerin **istemci tarafında** ihtiyaç duyulan bilgileri: etiket, dosya
- * sekmeleri, editör dili ve örnek içerik.
- *
- * Parser'lar bilinçli olarak buraya import edilmiyor — ts-morph ve TypeScript
- * derleyicisi (~6 MB) istemci paketine sızmasın diye. Ayrıştırma sunucuda,
- * `lib/orm/parse.ts` üzerinden yapılır.
- */
-
 export type EditorLanguage = "typescript" | "prisma";
 
 export interface OrmFile {
-  /** İstek gövdesindeki anahtar */
   key: string;
-  /** Sekmede görünen dosya adı */
   name: string;
   language: EditorLanguage;
 }
@@ -85,7 +74,6 @@ export function toOrmId(value: unknown): OrmId {
   return isOrmId(value) ? value : "drizzle";
 }
 
-/** Her ORM için örnek içerikle dolu başlangıç durumu. */
 export function initialSources(): Record<OrmId, Record<string, string>> {
   return Object.fromEntries(
     ORM_IDS.map((id) => [id, { ...ORM_CATALOG[id].sample }]),

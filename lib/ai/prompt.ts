@@ -8,7 +8,6 @@ const OUTPUT_LANGUAGE: Record<Locale, string> = {
   en: "English",
 };
 
-/** ORM'e göre değişen, koda dokunan beklentiler. */
 const ORM_NOTES: Record<OrmId, string> = {
   drizzle:
     "The project uses Drizzle ORM. Code fixes must be valid Drizzle syntax (column builders, " +
@@ -48,6 +47,8 @@ ${ORM_NOTES[orm]}
 
 Rules:
 - Write ALL output in ${OUTPUT_LANGUAGE[locale]}.
+- Use that language's own alphabet and diacritics correctly. For Turkish this means
+  ç, ğ, ı, İ, ö, ş, ü — never strip them down to ASCII ("şema", not "sema").
 - Produce at most 12 findings, most critical first.
 - Do NOT repeat anything from the "already detected" list. Those come from deterministic rules
   and are shown to the user separately. Focus on what needs judgement, domain knowledge or a

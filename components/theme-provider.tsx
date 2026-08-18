@@ -14,12 +14,6 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
-/**
- * Tema `<html data-theme>` üzerinde yaşıyor ve sayfa boyanmadan önce
- * `app/layout.tsx` içindeki satır içi script tarafından yazılıyor. Buradaki
- * başlangıç değeri o özniteliği okur — dolayısıyla hydration'da uyuşmazlık
- * ya da tema atlaması (flash) olmaz.
- */
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(() =>
     typeof document !== "undefined" && document.documentElement.dataset.theme === "light"
@@ -32,9 +26,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     document.documentElement.dataset.theme = next;
     try {
       localStorage.setItem(STORAGE_KEY, next);
-    } catch {
-      // Gizli sekmede localStorage kapalı olabilir; tema yine de uygulanır.
-    }
+    } catch {}
   }, []);
 
   const toggle = useCallback(
@@ -42,7 +34,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     [theme, setTheme],
   );
 
-  // Kullanıcı hiç seçim yapmadıysa işletim sistemi tercihini takip et.
   useEffect(() => {
     const media = window.matchMedia("(prefers-color-scheme: dark)");
     const onChange = () => {
@@ -66,6 +57,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
 export function useTheme(): ThemeContextValue {
   const context = useContext(ThemeContext);
-  if (!context) throw new Error("useTheme, ThemeProvider içinde kullanılmalı.");
+  if (!context) throw new Error("useTheme must be used inside ThemeProvider.");
   return context;
 }

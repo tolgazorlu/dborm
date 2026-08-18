@@ -7,44 +7,23 @@ import { analysisSchema } from "@/lib/ai/analysis-schema";
 import type { OrmId } from "@/lib/orm/types";
 import FindingCard from "./finding-card";
 
-/**
- * Kullanıcıya gösterilen hata metni.
- *
- * Üretimde **her** hata tek bir mesaja indirgeniyor: kota aşımı, sağlayıcı
- * kesintisi, eksik anahtar, akışın ortasında bozulan JSON… Kullanıcı açısından
- * hepsinin sonucu aynı (analiz şu an alınamıyor) ve teknik ayrıntı yalnızca
- * sunucu hakkında bilgi sızdırır. Sunucu da aynı politikayı uyguluyor
- * (bkz. `app/api/analyze/route.ts`); burası akış ortasında kopan bağlantı gibi
- * sunucunun artık gövdeye yazamayacağı durumları da kapsıyor.
- *
- * Geliştirmede gerçek mesaj görünür, yoksa hata ayıklamak imkânsız olurdu.
- */
 function readableError(error: Error, fallback: string): string {
   if (process.env.NODE_ENV !== "development") return fallback;
 
   try {
     const parsed = JSON.parse(error.message);
     if (parsed && typeof parsed.error === "string") return parsed.error;
-  } catch {
-    // JSON değilse olduğu gibi göster.
-  }
+  } catch {}
   return error.message;
 }
 
 export interface AnalysisPanelProps {
   orm: OrmId;
   sources: Record<string, string>;
-  /** Ayrıştırılabilir tablo yoksa analiz anlamsız olur. */
   disabled: boolean;
   onHover?: (table: string | null, columns: string[]) => void;
 }
 
-/**
- * Sunucudan gelen düz metin akışı her parçada yeniden JSON'a çözülür ve
- * şemaya göre "derin kısmi" bir nesne verir. Bu yüzden bulgular alan alan
- * dolarak ekrana düşer — ilk kritik bulgu, model daha yazmayı bitirmeden
- * görünür olur.
- */
 export default function AnalysisPanel({ orm, sources, disabled, onHover }: AnalysisPanelProps) {
   const { t, locale } = useI18n();
   const { object, submit, stop, isLoading, error } = useObject({

@@ -36,7 +36,7 @@ function parse() {
   return parseSequelizeSchema([{ path: "models.ts", content: SCHEMA }]);
 }
 
-test("define çağrılarını tabloya çevirir", () => {
+test("turns define calls into tables", () => {
   const schema = parse();
   assert.equal(schema.orm, "sequelize");
   assert.deepEqual(
@@ -45,7 +45,7 @@ test("define çağrılarını tabloya çevirir", () => {
   );
 });
 
-test("öznitelik seçeneklerini ve kısa yazımı okur", () => {
+test("reads attribute options and the shorthand form", () => {
   const user = parse().tables.find((table) => table.id === "User")!;
 
   const id = user.columns[0];
@@ -67,7 +67,7 @@ test("öznitelik seçeneklerini ve kısa yazımı okur", () => {
   assert.equal(post.columns.find((column) => column.key === "content")!.type, "TEXT");
 });
 
-test("timestamps varsayılan olarak açıktır", () => {
+test("timestamps are on by default", () => {
   const user = parse().tables.find((table) => table.id === "User")!;
   assert.ok(user.columns.some((column) => column.key === "createdAt"));
   assert.ok(user.columns.some((column) => column.key === "updatedAt"));
@@ -86,7 +86,7 @@ test("timestamps: false verilirse eklenmez", () => {
   );
 });
 
-test("birincil anahtar verilmezse örtük id ekler", () => {
+test("adds an implicit id when no primary key is given", () => {
   const schema = parseSequelizeSchema([
     {
       path: "models.ts",
@@ -100,7 +100,7 @@ test("birincil anahtar verilmezse örtük id ekler", () => {
   assert.equal(schema.tables[0].columns[0].isPrimaryKey, true);
 });
 
-test("belongsTo yabancı anahtarı kaynağa ekler", () => {
+test("belongsTo adds the foreign key to the source", () => {
   const post = parse().tables.find((table) => table.id === "Post")!;
   const authorId = post.columns.find((column) => column.key === "authorId")!;
 
@@ -112,7 +112,7 @@ test("belongsTo yabancı anahtarı kaynağa ekler", () => {
   });
 });
 
-test("ilişkileri ve model index'lerini toplar", () => {
+test("collects relations and model indexes", () => {
   const schema = parse();
   assert.deepEqual(
     schema.relations.map((relation) => `${relation.sourceTable}.${relation.fieldName}:${relation.kind}`),
@@ -123,7 +123,7 @@ test("ilişkileri ve model index'lerini toplar", () => {
   ]);
 });
 
-test("class + init biçimini de destekler", () => {
+test("supports the class + init form as well", () => {
   const schema = parseSequelizeSchema([
     {
       path: "models.ts",

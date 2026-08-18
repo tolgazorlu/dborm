@@ -25,15 +25,12 @@ import type { RelationEdge, TableNode } from "@/lib/flow/types";
 import { readFlowPalette } from "@/lib/theme/read-palette";
 import TableNodeView from "./table-node";
 
-/** Bileşen dışında tanımlı olmalı: her render'da yeni obje verilirse React Flow tüm node'ları yeniden kurar. */
 const nodeTypes = { table: TableNodeView };
 
 export interface SchemaCanvasProps {
   nodes: TableNode[];
   edges: RelationEdge[];
-  /** Değeri değişince kullanıcının sürüklediği konumlar unutulur ve otomatik yerleşime dönülür. */
   layoutVersion: number;
-  /** Değeri değişince yalnızca görünüm yeniden sığdırılır (yan bölmeler açılıp kapandığında). */
   fitSignal: number;
   onTableSelected?: (tableId: string | null) => void;
 }
@@ -52,14 +49,6 @@ function CanvasInner({
   const gridDot = useMemo(() => readFlowPalette(theme).gridDot, [theme]);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  /**
-   * Görünümü React Flow'un `fitView`'ı yerine kendimiz hesaplıyoruz.
-   *
-   * `fitView`, düğüm ölçülerinin ResizeObserver ile ölçülmesini bekler. Oysa
-   * node boyutlarını ve konumlarını zaten biz üretiyoruz (bkz. `lib/flow`),
-   * kapsayıcı ölçüsünü de `getBoundingClientRect` kesin veriyor — sığdırma
-   * elimizdeki listeden, ölçüm turuna hiç ihtiyaç duymadan hesaplanabiliyor.
-   */
   const fitTo = useCallback(
     (list: TableNode[]) => {
       const element = containerRef.current;
@@ -98,21 +87,12 @@ function CanvasInner({
     [setViewport],
   );
 
-  /**
-   * Kullanıcının sürüklediği konumlar. Her tuş vuruşunda şema yeniden
-   * ayrıştırılıp yeni bir dagre yerleşimi hesaplanıyor; bu ref sayesinde elle
-   * taşınmış tablolar yerinde kalır. Ref'e yalnızca olay yakalayıcılarda ve
-   * effect'lerde dokunuluyor — render sırasında değil.
-   */
   const draggedPositions = useRef<Record<string, { x: number; y: number }>>({});
   const appliedLayoutVersion = useRef(layoutVersion);
   const lastSignature = useRef("");
-  /** `fitSignal` effect'i güncel listeye buradan ulaşıyor. */
   const currentNodes = useRef<TableNode[]>(incoming);
 
   useEffect(() => {
-    // `layoutVersion` arttıysa kullanıcı "yeniden düzenle" dedi (ya da yön
-    // değişti): elle taşınan konumları unut, dagre'nin dediğine dön.
     const isRelayout = appliedLayoutVersion.current !== layoutVersion;
     if (isRelayout) {
       appliedLayoutVersion.current = layoutVersion;
@@ -128,31 +108,14 @@ function CanvasInner({
     setEdges(attachHandles(merged, incomingEdges));
     currentNodes.current = merged;
 
-    // Tablo kümesi değiştiyse (ya da elle yeniden düzenlendiyse) sığdır —
-    // her tuş vuruşunda değil.
     const signature = merged.map((node) => node.id).join("|");
     if (!isRelayout && signature === lastSignature.current) return;
 
-    /**
-     * Bir makro görev bekliyoruz: React Flow'un pan/zoom motoru kendi
-     * effect'inde kuruluyor ve ilk mount'ta ancak bu satırdan sonra hazır
-     * oluyor.
-     *
-     * `lastSignature` bilerek zamanlayıcının **içinde** güncelleniyor. Dışarıda
-     * güncellenirse React'in geliştirme modundaki çift mount'u şunu yapıyordu:
-     * ilk turda zamanlayıcı kuruluyor, cleanup onu iptal ediyor, ikinci turda
-     * imza "zaten işlendi" görünüp sığdırma hiç çalışmıyordu.
-     */
     const run = () => {
       lastSignature.current = signature;
       fitTo(merged);
     };
 
-    /**
-     * Arka plandaki bir sekmede tarayıcı ölçüm ve düzen işlerini askıya alır;
-     * o anda sığdırmaya çalışmak sessizce başarısız olur. Sayfa görünür değilse
-     * işi ilk görünürlük anına erteliyoruz.
-     */
     if (document.visibilityState !== "visible") {
       const onVisible = () => {
         if (document.visibilityState !== "visible") return;
@@ -171,7 +134,6 @@ function CanvasInner({
 
   useEffect(() => {
     if (firstFitSignal.current === fitSignal) return;
-    // Bölme genişliği CSS geçişiyle değişiyor; ölçüm bir sonraki tura kalıyor.
     const timer = setTimeout(() => fitTo(currentNodes.current), 0);
     return () => clearTimeout(timer);
   }, [fitSignal, fitTo]);
@@ -179,7 +141,6 @@ function CanvasInner({
   const handleDragStop = useCallback<OnNodeDrag<TableNode>>(
     (_event, node) => {
       draggedPositions.current[node.id] = node.position;
-      // Tablo diğer tarafa geçtiyse oklar da o kenardan çıksın.
       const current = getNodes();
       currentNodes.current = current;
       setEdges((existing) => attachHandles(current, existing));
@@ -227,8 +188,6 @@ export default function SchemaCanvas(props: SchemaCanvasProps) {
   const { t } = useI18n();
 
   return (
-    // `absolute inset-0`: flex kaynaklı yüzde-yükseklik belirsizliğini ortadan
-    // kaldırır, kapsayıcı her zaman ölçülebilir bir kutuya sahip olur.
     <div className="absolute inset-0 bg-bg">
       {props.nodes.length === 0 ? (
         <div className="flex h-full flex-col items-center justify-center gap-2 text-center">

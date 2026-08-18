@@ -12,17 +12,6 @@ import {
 } from "../types";
 import { parseFailureMessage, validateSchema } from "../validate";
 
-/**
- * Prisma şeması TypeScript değil, kendi DSL'i. Bu yüzden ts-morph yerine blok
- * tabanlı bir okuyucu kullanıyoruz: dil satır-yönelimli ve gramerinin
- * ihtiyacımız olan kısmı (model / enum / datasource blokları, alanlar ve
- * `@`/`@@` öznitelikleri) küçük.
- *
- * Önemli ayrım: Prisma'da ilişki alanı (`author User @relation(...)`) ile
- * yabancı anahtar kolonu (`authorId Int`) ayrı satırlardır. Diyagramda kolon
- * olarak yalnızca ikincisi görünmeli; ilki bir ParsedRelation'a dönüşür.
- */
-
 const PROVIDER_DIALECTS: Record<string, Dialect> = {
   postgresql: "pg",
   postgres: "pg",
@@ -143,7 +132,6 @@ export function parsePrismaSchema(files: ParserFile[], locale: Locale = "tr"): P
   }
 }
 
-/** Üst seviye `kind Name { ... }` bloklarını ayırır. */
 function readBlocks(source: string): { blocks: Block[]; unterminated?: Block } {
   const lines = source.split(/\r?\n/);
   const blocks: Block[] = [];
@@ -173,7 +161,6 @@ function readBlocks(source: string): { blocks: Block[]; unterminated?: Block } {
   return current ? { blocks, unterminated: current } : { blocks };
 }
 
-/** Tırnak içindeki `//` dizisini yorum sanmamak için basit bir tarayıcı. */
 function stripComment(line: string): string {
   let inString = false;
   for (let index = 0; index < line.length; index += 1) {
@@ -203,7 +190,6 @@ function parseModel(
   };
 
   const relations: ParsedRelation[] = [];
-  /** `@relation(fields: [...])` bilgisini kolonlara ikinci turda uygulamak için. */
   const pendingReferences: { column: string; table: string; column2: string; onDelete?: string; onUpdate?: string }[] =
     [];
 
@@ -220,7 +206,6 @@ function parseModel(
     const attributes = parseAttributes(rest);
     const isList = Boolean(listMarker);
 
-    // Tipi başka bir model olan alan, kolon değil ilişkidir.
     if (modelNames.has(fieldType)) {
       const relation = parseRelationAttribute(attributes);
       relations.push({
@@ -329,7 +314,6 @@ function applyBlockAttribute(table: ParsedTable, text: string): void {
   }
 }
 
-/** `@id`, `@default(now())`, `@db.VarChar(255)` — parantezleri dengeleyerek okur. */
 function parseAttributes(text: string): Attribute[] {
   const attributes: Attribute[] = [];
 
@@ -394,7 +378,6 @@ function namedList(args: string, key: string): string[] {
   return match ? splitList(match[1]) : [];
 }
 
-/** `@@index([a, b], name: "x")` → ['a', 'b'] */
 function listArgument(args: string): string[] {
   const match = /\[([^\]]*)\]/.exec(args);
   return match ? splitList(match[1]) : [];
@@ -407,7 +390,6 @@ function namedArgument(args: string): string | undefined {
 function splitList(value: string): string[] {
   return value
     .split(",")
-    // `@@index([email(sort: Desc)])` gibi biçimlerde kolon adını al.
     .map((item) => item.trim().replace(/\(.*$/, "").trim())
     .filter(Boolean);
 }

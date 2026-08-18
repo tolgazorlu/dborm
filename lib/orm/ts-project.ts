@@ -2,14 +2,6 @@ import { Project, ScriptTarget, ts, type SourceFile } from "ts-morph";
 
 import type { ParseDiagnostic, ParserFile } from "./types";
 
-/**
- * TypeScript kaynaklı ORM'ler (Drizzle, Mongoose) için ortak ts-morph kurulumu.
- *
- * Tip denetimi yapılmaz: ORM paketleri node_modules'ta çözümlenmediği için
- * semantik hatalar anlamsız olurdu. Sadece **sözdizimi** hataları teşhis olarak
- * döner; geri kalan her şey saf AST okumasıdır, böylece yarım yazılmış kodda
- * bile elden geldiğince ayrıştırma yapılır.
- */
 export function createTsProject(files: ParserFile[]): {
   project: Project;
   sourceFiles: SourceFile[];

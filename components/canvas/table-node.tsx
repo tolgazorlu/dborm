@@ -14,14 +14,6 @@ import {
 import type { TableNode as TableNodeType } from "@/lib/flow/types";
 import type { ParsedColumn } from "@/lib/orm/types";
 
-/**
- * Her kolon satırı kendi tutamaçlarını (Handle) taşır. Tutamaçlar satırın
- * içinde `position: absolute` ile konumlandığı için oklar tam olarak ilgili
- * kolonun hizasından çıkar — dbdiagram.io'daki his bundan geliyor.
- *
- * Satır başına 4 tutamaç var (sol/sağ × source/target). Hangisinin
- * kullanılacağına yerleşimden sonra `to-flow.ts` karar veriyor.
- */
 function ColumnHandles({ columnKey }: { columnKey: string }) {
   const style = { opacity: 0, width: 1, height: 1, minWidth: 1, minHeight: 1, border: "none" };
 
@@ -55,7 +47,7 @@ function LinkIcon() {
       viewBox="0 0 16 16"
       className="size-3 shrink-0 text-accent"
       fill="currentColor"
-      aria-label="yabancı anahtar"
+      aria-label="foreign key"
     >
       <path d="M6.6 9.4a2.5 2.5 0 0 1 0-3.5l2-2a2.5 2.5 0 0 1 3.5 3.5l-.9.9a.75.75 0 1 1-1-1l.8-1a1 1 0 0 0-1.4-1.4l-2 2a1 1 0 0 0 0 1.4.75.75 0 0 1-1 1Zm2.8-2.8a2.5 2.5 0 0 1 0 3.5l-2 2a2.5 2.5 0 0 1-3.5-3.5l.9-.9a.75.75 0 1 1 1 1l-.8 1a1 1 0 0 0 1.4 1.4l2-2a1 1 0 0 0 0-1.4.75.75 0 0 1 1-1Z" />
     </svg>

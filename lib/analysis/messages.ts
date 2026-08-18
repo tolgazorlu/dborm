@@ -1,10 +1,5 @@
 import type { Locale } from "@/lib/i18n/locales";
 
-/**
- * Kural motorunun ürettiği metinler. Bulgular sunucuda üretildiği için
- * çeviriler burada; kod parçaları (codeFix) ise dile değil ORM'e bağlı
- * olduğundan `static-checks.ts` içinde üretiliyor.
- */
 export interface CheckMessages {
   missingPrimaryKey: { title: (table: string) => string; description: string; suggestion: string };
   fkNoIndex: {

@@ -16,15 +16,6 @@ const ORM_LABEL: Record<string, string> = {
   mongoose: "Mongoose",
 };
 
-/**
- * Modele ham kaynak kod yerine **ayrıştırılmış** şemayı veriyoruz.
- * Sebebi token tasarrufu değil, belirsizliği kaldırmak: model "bu alan
- * gerçekten zorunlu mu?" diye kod okumak zorunda kalmaz, parser'ın çıkardığı
- * kesin bilgiyi görür ve yorum gerektiren konulara odaklanır.
- *
- * Metin İngilizce: bu bir kullanıcı arayüzü değil, model girdisi. Çıktının
- * dili sistem prompt'unda ayrıca belirtiliyor.
- */
 export function toSchemaDigest(schema: ParsedSchema): string {
   const entity = schema.dialect === "mongo" ? "COLLECTION" : "TABLE";
   const lines: string[] = [
@@ -93,7 +84,6 @@ function describeColumn(column: ParsedTable["columns"][number]): string {
   return `${column.name} ${column.displayType}${alias}${flags.length ? `  ${flags.join(", ")}` : ""}`;
 }
 
-/** Statik kural motorunun bulgularını modele "zaten tespit edildi" listesi olarak verir. */
 export function toStaticFindingsDigest(findings: Finding[]): string {
   if (findings.length === 0) return "The rule engine produced no findings.";
 

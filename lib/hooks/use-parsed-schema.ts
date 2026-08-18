@@ -11,13 +11,6 @@ interface ParseState {
   error: string | null;
 }
 
-/**
- * Editör içeriğini debounce ederek `/api/parse`'a gönderir.
- *
- * Yarış koşulu koruması: her yeni istek öncekini `AbortController` ile iptal
- * eder. Böylece yavaş kalan eski bir yanıt, yeni yazılan koda ait sonucun
- * üzerine yazamaz.
- */
 export function useParsedSchema(
   orm: OrmId,
   sources: Record<string, string>,
@@ -31,8 +24,6 @@ export function useParsedSchema(
     error: null,
   }));
 
-  // Nesne kimliği her render'da değişeceği için içeriğe göre bir anahtar
-  // üretiyoruz; effect yalnızca metin gerçekten değişince tetiklensin.
   const sourcesKey = JSON.stringify(sources);
 
   useEffect(() => {

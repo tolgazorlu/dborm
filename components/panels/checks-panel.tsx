@@ -17,10 +17,6 @@ const DIAGNOSTIC_TOKEN: Record<ParseDiagnostic["level"], string> = {
   info: "info",
 };
 
-/**
- * AI'dan bağımsız çalışan panel: kural motoru + parser teşhisleri.
- * Anahtar olmadan da uygulamanın işe yaramasını sağlar.
- */
 export default function ChecksPanel({ findings, diagnostics, onHover }: ChecksPanelProps) {
   const { t } = useI18n();
 

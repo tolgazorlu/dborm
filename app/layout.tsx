@@ -20,26 +20,17 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ORMLens — ORM şema görselleştirici",
+  title: "ORMLens — ORM schema visualizer",
   description:
-    "Drizzle, Prisma ve Mongoose şemalarını canlı ER diyagramına çevirin; index, ilişki ve güvenlik analizini yapay zekâdan alın.",
+    "Turn Drizzle, Prisma and Mongoose schemas into a live ER diagram; get index, relation and security analysis from AI.",
 };
 
-/**
- * Tema, HTML ayrıştırılırken senkron çalışan bu script ile ilk boyamadan önce
- * `<html data-theme>` üzerine yazılıyor. Sunucu "dark" ile render ettiği için
- * `suppressHydrationWarning` gerekiyor: DOM'daki değer kazanır.
- */
 const THEME_SCRIPT = `(function(){try{var t=localStorage.getItem("theme");if(t!=="light"&&t!=="dark"){t=window.matchMedia("(prefers-color-scheme: light)").matches?"light":"dark"}document.documentElement.setAttribute("data-theme",t)}catch(e){}})()`;
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
-  // Dil çerezden okunuyor: sunucu doğru dilde render edebilsin ve metinlerde
-  // hydration uyuşmazlığı olmasın (bkz. components/i18n-provider.tsx).
   const cookieStore = await cookies();
   const locale = toLocale(cookieStore.get(LOCALE_COOKIE)?.value);
 
-  // CSP nonce'u `proxy.ts` üretiyor; satır içi tema script'inin çalışabilmesi
-  // için etikete taşınması gerekiyor.
   const nonce = (await headers()).get("x-nonce") ?? undefined;
 
   return (

@@ -17,11 +17,6 @@ export function toLocale(value: unknown): Locale {
   return isLocale(value) ? value : DEFAULT_LOCALE;
 }
 
-/**
- * Gövdeyi okumadan önce hata mesajının dilini bilmek gerektiğinde kullanılır:
- * istemci dili hem gövdeye hem çereze yazıyor, çerez isteğin başlığında zaten
- * hazır.
- */
 export function localeFromRequest(request: Request): Locale {
   const value = request.headers
     .get("cookie")

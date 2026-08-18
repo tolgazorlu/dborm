@@ -1,12 +1,5 @@
 import type { OrmId } from "./types";
 
-/**
- * Uygulama açıldığında editöre yüklenen örnek şemalar. Bunlar çalıştırılmaz;
- * parser'a girdi olan düz metinlerdir. Üç örnek de kasıtlı olarak aynı veri
- * modelini (users → posts → comments) kurar, böylece ORM'ler arasında geçiş
- * yapınca diyagramın nasıl eşlendiği görülebilir.
- */
-
 const DRIZZLE_SCHEMA = `import {
   pgTable,
   serial,
@@ -179,7 +172,6 @@ export const User = mongoose.model('User', userSchema);
 export const Post = mongoose.model('Post', postSchema);
 export const Comment = mongoose.model('Comment', commentSchema);
 `;
-
 
 const TYPEORM_SCHEMA = `import {
   Entity,
@@ -433,9 +425,9 @@ export interface CommentTable {
   created_at: ColumnType<Date, string | undefined, never>;
 }
 
-// Kysely'de ilişkiler tip katmanında ifade edilmez. ORMLens bunları yalnızca
-// kolon adı tablo adıyla eşleştiğinde çıkarır (user_id -> users) ve diyagramda
-// kesik çizgiyle, yani "tahmin" olarak gösterir.
+// Kysely does not express relations in the type layer. ORMLens only infers them
+// when a column name matches a table name (user_id -> users) and draws them with
+// a dashed line, i.e. as a guess.
 export interface Database {
   users: UserTable;
   posts: PostTable;

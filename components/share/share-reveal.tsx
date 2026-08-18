@@ -10,7 +10,6 @@ import type { OrmId } from "@/lib/orm/types";
 
 export interface ShareRevealProps {
   token: string;
-  /** Sunucudaki kontrolün sonucu; null ise link zaten yok ya da süresi dolmuş. */
   expiresAt: number | null;
 }
 
@@ -24,8 +23,6 @@ export default function ShareReveal({ token, expiresAt }: ShareRevealProps) {
   const [payload, setPayload] = useState<Payload | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(expiresAt ? null : t.reveal.gone);
-  // Sunucu ile istemcinin saat dilimi farkı hydration hatası üretmesin diye
-  // yerel biçimlendirme mount'tan sonra yapılıyor.
   const expiryText = useLocalDateTime(expiresAt, locale);
 
   const reveal = useCallback(async () => {

@@ -1,16 +1,5 @@
 import type { Locale } from "./locales";
 
-/**
- * Arayüz metinleri.
- *
- * Anahtar dizisi (`t('a.b.c')`) yerine iç içe nesne kullanıyoruz: TypeScript
- * eksik/yanlış anahtarı derleme zamanında yakalıyor ve `en` sözlüğü `tr`'nin
- * şeklini birebir uygulamak zorunda kalıyor.
- *
- * Sunucuda üretilen metinler (parser teşhisleri, kural motoru bulguları, AI
- * prompt'u) burada değil, kendi modüllerinde yaşıyor — çünkü oraya locale
- * istekle birlikte gidiyor.
- */
 const tr = {
   header: {
     tagline: "ORM şema görselleştirici",
@@ -97,8 +86,6 @@ const tr = {
   },
 };
 
-// `as const` bilinçli olarak yok: literal tipler `en` sözlüğünü Türkçe
-// metinlerin birebir aynısını yazmaya zorlardı. Şekil yine de zorunlu.
 type Dictionary = typeof tr;
 
 const en: Dictionary = {

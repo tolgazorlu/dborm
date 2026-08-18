@@ -11,18 +11,12 @@ import { readCodePalette } from "@/lib/theme/read-palette";
 export interface SchemaEditorProps {
   value: string;
   onChange: (value: string) => void;
-  /** Monaco'nun her sekme için ayrı model (ve undo geçmişi) tutmasını sağlar. */
   path: string;
   language: EditorLanguage;
 }
 
 const THEME_NAME = "ormlens";
 
-/**
- * Monaco'nun hazır temaları bu kod için pek işe yaramıyor: şema dosyaları
- * ağırlıklı olarak tanımlayıcı, çağrı ve string'den oluşuyor ve hepsi aynı
- * renge düşüyor. Burada token'ları uygulamanın paletine bağlıyoruz.
- */
 function defineTheme(monaco: Monaco, theme: Theme): boolean {
   const palette = readCodePalette();
 
@@ -30,7 +24,6 @@ function defineTheme(monaco: Monaco, theme: Theme): boolean {
     monaco.editor.defineTheme(THEME_NAME, {
       base: theme === "light" ? "vs" : "vs-dark",
       inherit: true,
-      // Token kuralları '#' istemez; `colors` ise ister.
       rules: [
         { token: "", foreground: palette.fg },
         { token: "comment", foreground: palette.comment, fontStyle: "italic" },
@@ -67,14 +60,11 @@ function defineTheme(monaco: Monaco, theme: Theme): boolean {
     });
     return true;
   } catch (error) {
-    // Bozuk tek bir renk yüzünden tüm uygulama çökmesin: Monaco kendi
-    // varsayılan temasıyla devam eder, sadece renkler jenerik olur.
-    console.error("Monaco teması tanımlanamadı:", error);
+    console.error("Could not define the Monaco theme:", error);
     return false;
   }
 }
 
-/** Prisma, Monaco'da tanımlı diller arasında yok; küçük bir tokenizer yazıyoruz. */
 function registerPrisma(monaco: Monaco): void {
   if (monaco.languages.getLanguages().some((item: { id: string }) => item.id === "prisma")) return;
 
@@ -123,11 +113,6 @@ export default function SchemaEditor({ value, onChange, path, language }: Schema
   const monacoRef = useRef<Monaco | null>(null);
   const [themeName, setThemeName] = useState(THEME_NAME);
 
-  /**
-   * ORM paketlerinin tip tanımları Monaco'ya yüklenmediği için semantik
-   * denetim her satırı kırmızıya boyardı. Sözdizimi denetimi açık kalıyor:
-   * asıl ihtiyacımız olan geri bildirim o.
-   */
   const handleBeforeMount = useCallback<BeforeMount>(
     (monaco) => {
       monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
@@ -151,7 +136,6 @@ export default function SchemaEditor({ value, onChange, path, language }: Schema
     monacoRef.current = monaco;
   }, []);
 
-  // Tema değişince CSS değişkenleri de değişmiş olur; temayı yeniden tanımla.
   useEffect(() => {
     const monaco = monacoRef.current;
     if (!monaco) return;

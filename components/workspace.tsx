@@ -22,7 +22,6 @@ import { readFlowPalette } from "@/lib/theme/read-palette";
 type PanelTab = "checks" | "ai";
 
 export interface WorkspaceProps {
-  /** Paylaşım linkinden açıldığında gelen içerik. */
   initialOrm?: OrmId;
   initialSources?: Record<string, string>;
 }
@@ -38,10 +37,6 @@ export default function Workspace({
   const { theme } = useTheme();
 
   const [orm, setOrm] = useState<OrmId>(initialOrm);
-  /**
-   * Kaynaklar ORM başına ayrı tutuluyor: kullanıcı Prisma'ya geçip geri
-   * döndüğünde Drizzle'da yazdıkları duruyor.
-   */
   const [sources, setSources] = useState<Record<OrmId, Record<string, string>>>(() => {
     const base = initialSources();
     if (sharedSources) base[initialOrm] = { ...base[initialOrm], ...sharedSources };
@@ -58,18 +53,6 @@ export default function Workspace({
   const [showPanel, setShowPanel] = useState(true);
   const [fitSignal, setFitSignal] = useState(0);
 
-  /**
-   * Kalıcılık.
-   *
-   * Geri yükleme render sırasında değil `useEffect` içinde: `localStorage`
-   * sunucuda yok, ilk render'da okunsaydı sunucunun ürettiği HTML ile
-   * istemcininki uyuşmaz, hydration hatası olurdu. Kaydetme ise debounce'lu —
-   * her tuş vuruşunda diske yazmanın anlamı yok.
-   *
-   * Paylaşım linkinden gelindiyse geri yükleme atlanıyor: kullanıcının o an
-   * görmek istediği şey linkteki şema, kendi taslağı değil. Sonrasında
-   * düzenledikçe o içerik de kaydedilmeye başlar.
-   */
   const openedFromShare = sharedSources !== undefined;
 
   useEffect(() => {
@@ -78,13 +61,6 @@ export default function Workspace({
     const stored = readWorkspace();
     if (!stored) return;
 
-    /**
-     * `set-state-in-effect` kuralı burada bilerek susturuluyor. Kuralın
-     * önerdiği çözüm durumu render sırasında hesaplamak; `localStorage`
-     * sunucuda olmadığı için o yol hydration uyuşmazlığı üretir. Mount'tan
-     * sonra bir kez çalışan bu ek render, doğru olanın bedeli.
-     */
-    /* eslint-disable react-hooks/set-state-in-effect */
     setOrm(stored.orm);
     setActiveFile(ORM_CATALOG[stored.orm].files[0].key);
     setSources((previous) => {
@@ -92,7 +68,6 @@ export default function Workspace({
       for (const id of ORM_IDS) merged[id] = { ...previous[id], ...stored.sources[id] };
       return merged;
     });
-    /* eslint-enable react-hooks/set-state-in-effect */
   }, [openedFromShare]);
 
   useEffect(() => {
@@ -143,7 +118,6 @@ export default function Workspace({
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-bg text-fg">
-      {/* Header hiçbir zaman kaymaz: sayfa scroll'u kapalı, scroll bölmelerin içinde. */}
       <header className="flex shrink-0 items-center gap-3 overflow-x-auto border-b border-line bg-surface px-4 py-2">
         <h1 className="whitespace-nowrap text-sm font-semibold tracking-tight">
           ORM<span className="text-accent">Lens</span>
@@ -245,7 +219,6 @@ export default function Workspace({
           >
             {t.header.relayout}
           </button>
-          {/* Kalıcılık olmadan örneklere dönmenin bir yolu kalmazdı. */}
           <button
             type="button"
             onClick={resetToSamples}
@@ -261,7 +234,6 @@ export default function Workspace({
       </header>
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
-        {/* Sol: editör — kendi scroll'u Monaco'nun içinde */}
         <section
           className={`${showEditor ? "flex" : "hidden"} min-h-0 w-[38%] min-w-[300px] max-w-[560px] flex-col border-r border-line bg-surface`}
         >
@@ -296,7 +268,6 @@ export default function Workspace({
           </div>
         </section>
 
-        {/* Orta: diyagram — kendi pan/zoom'u */}
         <section className="relative min-h-0 min-w-0 flex-1">
           <SchemaCanvas
             nodes={nodes}
@@ -306,7 +277,6 @@ export default function Workspace({
           />
         </section>
 
-        {/* Sağ: bulgular — kendi dikey scroll'u */}
         <aside
           className={`${showPanel ? "flex" : "hidden"} min-h-0 w-[340px] shrink-0 flex-col border-l border-line bg-surface`}
         >

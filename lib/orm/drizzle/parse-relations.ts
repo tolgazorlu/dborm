@@ -8,21 +8,6 @@ import {
 } from "../ast-utils";
 import type { ParsedRelation, RelationKind } from "../types";
 
-/**
- * `relations()` bloklarını okur:
- *
- *   export const postsRelations = relations(posts, ({ one }) => ({
- *     author: one(users, {
- *       fields: [posts.authorId],
- *       references: [users.id],
- *     }),
- *   }));
- *
- * Dönen objedeki her anahtar bir ParsedRelation olur. `many()` tarafında
- * fields/references bulunmaz — bunlar Drizzle'ın mantıksal (sorgu katmanı)
- * ilişkileridir, veritabanı seviyesinde FK garantisi vermezler.
- */
-
 export function isRelationsDeclaration(declaration: VariableDeclaration): boolean {
   const initializer = declaration.getInitializer();
   if (!initializer || !Node.isCallExpression(initializer)) return false;
@@ -78,7 +63,6 @@ export function parseRelationsDeclaration(declaration: VariableDeclaration): Par
   return relations;
 }
 
-/** `one(...)` / `many(...)` — destructure edilmiş ya da `helpers.one(...)` biçimi. */
 function relationKind(callee: Node): RelationKind | undefined {
   const name = Node.isPropertyAccessExpression(callee) ? callee.getName() : callee.getText();
   return name === "one" || name === "many" ? name : undefined;

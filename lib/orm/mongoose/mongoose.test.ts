@@ -32,7 +32,7 @@ function parse() {
   return parseMongooseSchema([{ path: "models.ts", content: SCHEMA }]);
 }
 
-test("model adlarını tablo kimliği olarak kullanır", () => {
+test("uses model names as table ids", () => {
   const schema = parse();
   assert.equal(schema.orm, "mongoose");
   assert.equal(schema.dialect, "mongo");
@@ -42,7 +42,7 @@ test("model adlarını tablo kimliği olarak kullanır", () => {
   );
 });
 
-test("örtük _id ve timestamps kolonlarını ekler", () => {
+test("adds implicit _id and timestamps columns", () => {
   const user = parse().tables.find((table) => table.id === "User")!;
 
   assert.equal(user.columns[0].key, "_id");
@@ -53,7 +53,7 @@ test("örtük _id ve timestamps kolonlarını ekler", () => {
   );
 });
 
-test("required, unique, default ve enum tanımlarını okur", () => {
+test("reads required, unique, default and enum definitions", () => {
   const user = parse().tables.find((table) => table.id === "User")!;
 
   const email = user.columns.find((column) => column.key === "email")!;
@@ -66,7 +66,7 @@ test("required, unique, default ve enum tanımlarını okur", () => {
   assert.equal(role.hasDefault, true);
 });
 
-test("kısa tip yazımını ve dizi alanlarını destekler", () => {
+test("supports shorthand types and array fields", () => {
   const post = parse().tables.find((table) => table.id === "Post")!;
 
   const content = post.columns.find((column) => column.key === "content")!;
@@ -78,7 +78,7 @@ test("kısa tip yazımını ve dizi alanlarını destekler", () => {
   assert.equal(tags.displayType, "String[]");
 });
 
-test("ref alanlarını referansa ve ilişkiye çevirir", () => {
+test("turns ref fields into references and relations", () => {
   const schema = parse();
   const post = schema.tables.find((table) => table.id === "Post")!;
 
@@ -96,14 +96,14 @@ test("ref alanlarını referansa ve ilişkiye çevirir", () => {
   );
 });
 
-test("schema.index() çağrılarını okur", () => {
+test("reads schema.index() calls", () => {
   const post = parse().tables.find((table) => table.id === "Post")!;
   assert.deepEqual(post.indexes, [
     { name: undefined, columns: ["author", "title"], isUnique: true },
   ]);
 });
 
-test("index: true kısayolunu da index sayar", () => {
+test("counts the index: true shorthand as an index", () => {
   const schema = parseMongooseSchema([
     {
       path: "models.ts",
@@ -114,7 +114,7 @@ export const S = mongoose.model('Thing', s);`,
   assert.deepEqual(schema.tables[0].indexes, [{ columns: ["slug"], isUnique: false }]);
 });
 
-test("collection seçeneği verilirse koleksiyon adını kullanır", () => {
+test("uses the collection option as the collection name", () => {
   const schema = parseMongooseSchema([
     {
       path: "models.ts",
@@ -126,7 +126,7 @@ export const S = mongoose.model('Thing', s);`,
   assert.equal(schema.tables[0].name, "legacy_things");
 });
 
-test("gömülü alt belgeleri Object olarak gösterir", () => {
+test("renders embedded subdocuments as Object", () => {
   const schema = parseMongooseSchema([
     {
       path: "models.ts",
@@ -137,14 +137,14 @@ export const S = mongoose.model('Person', s);`,
   assert.equal(schema.tables[0].columns[1].displayType, "Object");
 });
 
-test("model() çağrısı yoksa değişken adına düşer", () => {
+test("falls back to the variable name without a model() call", () => {
   const schema = parseMongooseSchema([
     { path: "models.ts", content: `const orphanSchema = new Schema({ a: String });` },
   ]);
   assert.equal(schema.tables[0].id, "orphanSchema");
 });
 
-test("sözdizimi hatasında çökmez", () => {
+test("does not crash on a syntax error", () => {
   const schema = parseMongooseSchema([{ path: "models.ts", content: "const s = new Schema({" }]);
   assert.ok(schema.diagnostics.some((item) => item.level === "error"));
 });

@@ -26,15 +26,6 @@ import {
 } from "../types";
 import { parseFailureMessage, validateSchema } from "../validate";
 
-/**
- * MikroORM entity sınıflarını okur.
- *
- * TypeORM'den önemli bir farkı var: `@ManyToOne` ile işaretlenen alan **kendisi
- * yabancı anahtar kolonudur** (veritabanında `author_id` olarak tutulur), ayrı
- * bir id alanı yazılmaz. Bu yüzden burada ilişki alanı hem kolon hem ilişki
- * üretir.
- */
-
 const TO_ONE = ["ManyToOne", "OneToOne"];
 const TO_MANY = ["OneToMany", "ManyToMany"];
 
@@ -147,7 +138,6 @@ function parseEntity(
         file: table.file,
       });
 
-      // `@ManyToOne`/`@OneToOne` alanı aynı zamanda yabancı anahtar kolonudur.
       if (toOne) {
         const options = relationDecorator.options;
         const onDelete = options.deleteRule ?? options.onDelete;
@@ -233,10 +223,6 @@ function parseColumn(
   };
 }
 
-/**
- * `@Index({ properties: ['a', 'b'] })` sınıf üzerinde, `@Index()` ise alan
- * üzerinde kullanılır; ikisini de aynı yerden okuyoruz.
- */
 function applyIndexDecorators(
   table: ParsedTable,
   decorators: ReadDecorator[],

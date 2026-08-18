@@ -12,19 +12,15 @@ export const CATEGORIES = [
 ] as const;
 export type FindingCategory = (typeof CATEGORIES)[number];
 
-/** Hem statik kural motorunun hem de AI'ın ürettiği bulguların ortak şekli. */
 export interface Finding {
   id: string;
   severity: Severity;
   category: FindingCategory;
   title: string;
-  /** İlgili tablonun değişken adı (varsa) */
   table?: string;
-  /** İlgili kolonların obje anahtarları */
   columns?: string[];
   description: string;
   suggestion: string;
-  /** Uygulanabilir Drizzle kod parçası */
   codeFix?: string;
 }
 

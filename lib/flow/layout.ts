@@ -5,13 +5,6 @@ import type { RelationEdge, TableNode } from "./types";
 
 export type LayoutDirection = "LR" | "TB";
 
-/**
- * Dagre ile katmanlı yerleşim. Dagre koordinatları node'un **merkezini**
- * verir; React Flow ise sol-üst köşeyi ister, bu yüzden yarı boyut çıkarılır.
- *
- * Kullanıcının sürüklediği konumlar burada değil, canvas bileşeninde korunur
- * (bkz. `schema-canvas.tsx`): yerleşim saf bir fonksiyon olarak kalsın diye.
- */
 export function layoutGraph(
   nodes: TableNode[],
   edges: RelationEdge[],
@@ -33,7 +26,6 @@ export function layoutGraph(
     graph.setNode(node.id, { width: NODE_WIDTH, height: nodeHeight(node.data.table) });
   }
   for (const edge of edges) {
-    // Ok yönü çocuk → ebeveyn; dagre'de ebeveyni sola almak için ters bağlıyoruz.
     graph.setEdge(edge.target, edge.source, {}, edge.id);
   }
 

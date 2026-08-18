@@ -2,15 +2,6 @@
 
 import { useTheme } from "./theme-provider";
 
-/**
- * Simge ve etiket bilinçli olarak `theme` state'ine bağlı değil.
- *
- * Sunucu HTML'i her zaman "dark" ile üretilir; istemcide satır içi script
- * gerçek tercihi uygular. İkisi arasındaki fark state'e bağlı bir simgede
- * hydration uyuşmazlığına yol açıyordu. Her iki simgeyi de basıp hangisinin
- * görüneceğine CSS (yani `data-theme`) karar verince sorun tamamen ortadan
- * kalkıyor — üstelik ilk boyamada doğru simge görünüyor.
- */
 export default function ThemeToggle() {
   const { toggle } = useTheme();
 
@@ -18,11 +9,10 @@ export default function ThemeToggle() {
     <button
       type="button"
       onClick={toggle}
-      title="Temayı değiştir"
-      aria-label="Temayı değiştir"
+      title="Toggle theme"
+      aria-label="Toggle theme"
       className="flex size-7 shrink-0 items-center justify-center rounded-md border border-line text-fg-muted transition-colors hover:bg-surface-2 hover:text-fg"
     >
-      {/* Koyu temada güneş (açığa geç), açık temada ay (koyuya geç). */}
       <svg
         viewBox="0 0 20 20"
         className="hidden size-3.5 dark:block"

@@ -52,7 +52,7 @@ function parse() {
   return parseTypeOrmSchema([{ path: "entities.ts", content: SCHEMA }]);
 }
 
-test("@Entity sınıflarını tabloya çevirir", () => {
+test("turns @Entity classes into tables", () => {
   const schema = parse();
   assert.equal(schema.orm, "typeorm");
   assert.deepEqual(
@@ -61,7 +61,7 @@ test("@Entity sınıflarını tabloya çevirir", () => {
   );
 });
 
-test("ilişki alanı kolon değildir, yabancı anahtar ayrı alandadır", () => {
+test("a relation field is not a column, the foreign key is a separate field", () => {
   const post = parse().tables.find((table) => table.id === "Post")!;
 
   assert.deepEqual(
@@ -79,7 +79,7 @@ test("ilişki alanı kolon değildir, yabancı anahtar ayrı alandadır", () => 
   });
 });
 
-test("kolon seçeneklerini ve TS tiplerini okur", () => {
+test("reads column options and TS types", () => {
   const user = parse().tables.find((table) => table.id === "User")!;
 
   const id = user.columns[0];
@@ -94,7 +94,6 @@ test("kolon seçeneklerini ve TS tiplerini okur", () => {
   const role = user.columns.find((column) => column.key === "role")!;
   assert.deepEqual(role.enumValues, ["admin", "viewer"]);
 
-  // TypeORM'de kolonlar varsayılan olarak NOT NULL'dur.
   assert.equal(user.columns.find((column) => column.key === "bio")!.isNotNull, false);
 
   const createdAt = user.columns.find((column) => column.key === "createdAt")!;
@@ -103,7 +102,7 @@ test("kolon seçeneklerini ve TS tiplerini okur", () => {
   assert.equal(createdAt.hasDefault, true);
 });
 
-test("sınıf ve alan seviyesindeki index'leri toplar", () => {
+test("collects class-level and field-level indexes", () => {
   const post = parse().tables.find((table) => table.id === "Post")!;
   assert.deepEqual(post.indexes, [
     { name: "posts_slug_idx", columns: ["slug"], isUnique: false },
@@ -111,7 +110,7 @@ test("sınıf ve alan seviyesindeki index'leri toplar", () => {
   ]);
 });
 
-test("one ve many ilişkilerini kurar", () => {
+test("builds one and many relations", () => {
   const { relations } = parse();
   assert.deepEqual(
     relations.map((relation) => `${relation.id}:${relation.kind}`),
@@ -120,7 +119,7 @@ test("one ve many ilişkilerini kurar", () => {
   assert.deepEqual(relations[1].fields, ["authorId"]);
 });
 
-test("DataSource tanımından lehçeyi çıkarır", () => {
+test("derives the dialect from the DataSource definition", () => {
   const schema = parseTypeOrmSchema([
     {
       path: "entities.ts",
@@ -132,7 +131,7 @@ export class A { @PrimaryGeneratedColumn() id: number; }`,
   assert.equal(schema.dialect, "pg");
 });
 
-test("sözdizimi hatasında çökmez", () => {
+test("does not crash on a syntax error", () => {
   const schema = parseTypeOrmSchema([{ path: "entities.ts", content: "@Entity() export class {" }]);
   assert.ok(schema.diagnostics.some((item) => item.level === "error"));
 });

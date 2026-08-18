@@ -1,6 +1,5 @@
 import type { Locale } from "./locales";
 
-/** Route handler'ların döndüğü, kullanıcıya gösterilen hata metinleri. */
 export const API_MESSAGES: Record<
   Locale,
   {
