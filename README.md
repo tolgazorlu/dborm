@@ -1,297 +1,306 @@
 # ORMLens
 
-A dbdiagram.io-style tool that turns ORM schema code into a live ER diagram and
-analyzes it with AI. Built on Next.js App Router, React Flow, ts-morph and the
-Vercel AI SDK (Google Gemini).
+Paste an ORM schema, get a live ER diagram, a deterministic review and an AI
+second opinion. Seven ORMs, one shared schema model, no database connection
+required.
 
-**Supported ORMs:** Drizzle · Prisma · TypeORM · MikroORM · Sequelize ·
-Kysely · Mongoose (via the header selector)
-**Languages:** Türkçe · English
-**Theme:** dark · light
+**Drizzle · Prisma · TypeORM · MikroORM · Sequelize · Kysely · Mongoose**
 
-- **Left**: Monaco editor (file tabs vary per ORM)
-- **Center**: React Flow canvas — tables are nodes, references are edges
-- **Right**: deterministic rule engine + streaming AI analysis
+- **Editor** — Monaco with per-ORM file tabs and syntax highlighting
+- **Diagram** — React Flow canvas; tables are nodes, foreign keys are edges,
+  updated as you type
+- **Checks** — a deterministic rule engine that finds missing indexes, unsafe
+  delete behaviour, secret-looking columns and structural mistakes
+- **AI analysis** — an optional streaming review from Google Gemini that
+  covers the judgement calls the rule engine cannot make
 
-The page itself never scrolls: the header is fixed and each of the three panes
-scrolls on its own.
+Nothing is sent anywhere unless you press the AI button. The parser, the
+diagram and the rule engine all run on your own server.
 
-## Setup
+## Quick start
 
 ```bash
-npm install
-cp .env.example .env.local   # add GOOGLE_GENERATIVE_AI_API_KEY (optional)
-npm run dev
+git clone https://github.com/tolgazorlu/ormlens.git
+cd ormlens
+pnpm install
+cp .env.example .env.local
+pnpm dev
 ```
 
-The app works fully without a key; only the "AI analysis" tab returns an error.
-The parser, rule engine, diagram and sharing all work without one. Get a key at
-[aistudio.google.com/apikey](https://aistudio.google.com/apikey).
+Open <http://localhost:3000>.
 
-Quota and limit settings live in `.env.example` and are all optional.
+The app is fully usable without any configuration — only the "AI analysis" tab
+needs a key. To enable it, get one from
+[Google AI Studio](https://aistudio.google.com/apikey) and put it in
+`.env.local`:
+
+```
+GOOGLE_GENERATIVE_AI_API_KEY=your-key-here
+```
+
+npm and yarn work too; pnpm is what the lockfile is built with.
+
+**Requirements:** Node.js 20.9 or newer.
+
+## Deploying
+
+### Docker
+
+```bash
+docker build -t ormlens .
+docker run -p 3000:3000 \
+  -e GOOGLE_GENERATIVE_AI_API_KEY=your-key-here \
+  -v ormlens-data:/app/.data \
+  ormlens
+```
+
+The image is a multi-stage build on top of Next.js standalone output and runs
+as a non-root user. `/app/.data` holds one-time share records; mount it as a
+volume if you want links to survive a restart. A health check is exposed at
+`/api/health`.
+
+### Node
+
+```bash
+pnpm build
+pnpm start
+```
+
+### Vercel and other serverless platforms
+
+It deploys as-is, but read [Known limitations](SECURITY.md#known-limitations)
+first. Two modules assume a single long-lived process:
+
+- `lib/security/rate-limit.ts` keeps rate limit counters in memory
+- `lib/share/store.ts` writes share records to the local file system
+
+On serverless each instance has its own memory and its own disk, so rate limits
+multiply by instance count and share links break across instances. Both modules
+are small and self-contained — swap them for Redis or a KV store and the rest of
+the app does not change.
+
+### Behind a reverse proxy
+
+Rate limiting identifies clients by `x-forwarded-for`. Make sure your proxy sets
+it, and set `RATE_LIMIT_IP_HEADER` if it uses a different one:
+
+```
+RATE_LIMIT_IP_HEADER=cf-connecting-ip
+```
+
+Do not expose the app directly to the internet without a proxy — the header
+would be client-controlled and the limits bypassable.
+
+## Configuration
+
+Everything is optional except the API key. Defaults are in parentheses.
+
+### AI
+
+| Variable | Description |
+| --- | --- |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | Enables the AI analysis tab. Without it the tab returns an error and the rest of the app is unaffected. |
+| `AI_MODEL` | Model used for analysis (`gemini-3.5-flash`). |
+| `AI_FALLBACK_MODEL` | Tried when the primary model cannot start, for example on a provider 503 (`gemini-3.5-flash-lite`). |
+
+### Rate limits
+
+| Variable | Description |
+| --- | --- |
+| `AI_BURST_LIMIT` | AI requests per IP per minute (`3`). |
+| `AI_DAILY_LIMIT` | AI requests per IP per day (`15`). |
+| `AI_GLOBAL_DAILY_LIMIT` | AI requests across all clients per day (`400`). This is what protects your bill. |
+| `PARSE_RATE_LIMIT` | Parse requests per IP per minute (`120`). |
+| `SHARE_RATE_LIMIT` | Share links created per IP per hour (`20`). |
+| `SHARE_OPEN_RATE_LIMIT` | Share link opens per IP per hour (`60`). |
+| `RATE_LIMIT_SALT` | Salt for hashing client IPs. Random per process if unset; set it to keep counters stable across restarts. |
+| `RATE_LIMIT_IP_HEADER` | Header to read the client IP from (`x-forwarded-for`, falling back to `x-real-ip`). |
+
+Windows are fixed and aligned to UTC, so a daily limit really does reset at the
+start of the day. IPs are never stored — only a salted SHA-256 digest, which is
+all an equality check needs.
+
+### Frontend
+
+| Variable | Description |
+| --- | --- |
+| `NEXT_PUBLIC_MONACO_CDN` | Where to load the Monaco editor from. Defaults to jsDelivr; point it at your own mirror for air-gapped or policy-restricted deployments. The CSP follows this value automatically. |
+| `NEXT_PUBLIC_CLARITY_PROJECT_ID` | Enables Microsoft Clarity analytics. **Disabled unless set.** Never loaded in development or on share pages, since the share token is in the URL. |
 
 ## Commands
 
 | Command | Description |
 | --- | --- |
-| `npm run dev` | Development server |
-| `npm run build` | Production build |
-| `npm test` | Parser tests (60 tests, node:test + tsx) |
-| `npm run typecheck` | `tsc --noEmit` |
-| `npm run lint` | ESLint |
+| `pnpm dev` | Development server |
+| `pnpm build` | Production build |
+| `pnpm start` | Serve the production build |
+| `pnpm test` | Parser tests (60 tests, `node:test`) |
+| `pnpm typecheck` | `tsc --noEmit` |
+| `pnpm lint` | ESLint |
 
-## Architecture
+## How it works
 
 ```
 proxy.ts                    CSP header + per-request nonce
 app/
-  layout.tsx                Theme script (flash prevention) + locale cookie + providers
+  layout.tsx                Theme script, locale cookie, providers
   page.tsx                  Opens the workspace
-  s/[token]/page.tsx        One-time link — confirmation screen
+  s/[token]/page.tsx        One-time share link, confirmation screen
   api/parse/route.ts        Code -> ParsedSchema + static findings
-  api/analyze/route.ts      ParsedSchema -> streaming AI analysis (Gemini)
-  api/share/…               Create / check / open a one-time link
+  api/analyze/route.ts      ParsedSchema -> streaming AI analysis
+  api/share/...             Create / check / open a one-time link
+  api/health/route.ts       Liveness probe
 components/
   workspace.tsx             Client orchestrator (ORM, tabs, layout)
-  i18n-provider.tsx         Locale context (cookie based)
-  theme-provider.tsx        data-theme + localStorage
-  editor/schema-editor.tsx  Monaco + custom syntax theme + Prisma tokenizer
+  editor/schema-editor.tsx  Monaco, custom theme, Prisma tokenizer
   canvas/                   React Flow canvas and table node
-  panels/                   Finding card, rule engine panel, AI panel
+  panels/                   Rule engine panel, AI panel, finding card
   share/                    Share dialog and reveal screen
 lib/
-  orm/
-    types.ts                The common ParsedSchema every ORM produces
-    catalog.ts              Client-side ORM list, file tabs, samples
-    parse.ts                Server-side dispatcher
-    ts-project.ts           Shared ts-morph setup for TS-based ORMs
-    validate.ts             ORM-agnostic structural validation
-    decorators.ts           Shared decorator readers for TypeORM/MikroORM
-    drizzle/ prisma/ typeorm/ mikroorm/ sequelize/ kysely/ mongoose/
+  orm/                      One parser per ORM, all producing ParsedSchema
   flow/                     ParsedSchema -> nodes/edges + dagre layout
   analysis/                 Deterministic rule engine
-  ai/                       Zod schema, prompt, schema digest
-  i18n/                     Dictionaries, locale helpers
+  ai/                       Zod output schema, prompt, schema digest
+  i18n/                     Dictionaries and locale helpers
+  security/                 Rate limit counters, IP key, body size guard
   share/store.ts            One-time record store
-  security/                 Quota counters, IP key, size-limited body reader
-  storage/workspace.ts      Workspace persistence in localStorage
-  theme/read-palette.ts     Reads CSS variables for Monaco/React Flow
+  storage/workspace.ts      Editor persistence in localStorage
+  theme/read-palette.ts     Reads CSS variables for Monaco and React Flow
 ```
 
-### Adding a new ORM
+Every parser produces the same `ParsedSchema`. The diagram, the rule engine and
+the AI layer only know about that type, which is why adding an ORM does not
+touch anything else.
+
+### Why the parser runs on the server
+
+`ts-morph` pulls in the TypeScript compiler, roughly 6 MB. Shipping that to the
+browser would badly hurt first load. The parsers in `lib/orm/*` are pure
+functions, so running them client-side is just a matter of calling the same
+functions inside a Web Worker — no UI changes needed.
+
+### What the AI sees
+
+The client sends raw source, and the server **parses it again** rather than
+trusting the client's JSON. The model receives the parsed digest plus the rule
+engine's findings marked as "already detected", so it spends its attention on
+judgement calls instead of re-deriving structure. Output is constrained by a Zod
+schema and streamed, so findings appear one field at a time.
+
+If anything goes wrong on the model side — quota, invalid key, provider outage,
+malformed output — the response is always the same 429 with the same message.
+That is deliberate: the error text should not reveal whether a key is set, which
+model is in use or which provider failed. The real error goes to the server log.
+
+### One-time share links
+
+**Share** produces a `/s/<token>` link that carries the schema and its ORM. The
+link opens **once**: the content is deleted from the server the moment it is
+read. Unopened links expire after 24 hours.
+
+A `GET` deliberately does not consume the link — messaging apps and browsers
+prefetch URLs, and the link would burn before the recipient ever saw it. The
+page shows a confirmation screen and only a user-triggered `POST` reveals the
+content. The one-time guarantee comes from `rename`, which is atomic on POSIX,
+so out of two concurrent requests exactly one wins.
+
+Shared content is stored unencrypted until it is read. Do not use it for
+secrets.
+
+### Where your work is stored
+
+The editor content is written to `localStorage` under `ormlens:workspace:v1`
+with a 500 ms debounce, so it survives closing the tab. **Reset** in the header
+clears it and restores the samples. Nothing is written to a cookie — a cookie
+travels to the server on every request and caps out around 4 KB, while schema
+content can reach 256 KB.
+
+## Adding a new ORM
 
 1. Write a parser with the signature `(files, locale) => ParsedSchema` in
-   `lib/orm/<orm>/index.ts`. For TypeScript-based ORMs use `createTsProject` +
-   `ast-utils`; for a custom DSL, the block reader in the Prisma parser is the
-   pattern to follow.
+   `lib/orm/<orm>/index.ts`. For TypeScript-based ORMs, `createTsProject` and
+   `ast-utils` do most of the work; for a custom DSL, the block reader in the
+   Prisma parser is the pattern to copy.
 2. Add the id to `ORM_IDS` in `lib/orm/types.ts`.
-3. Add a sample schema to `lib/orm/samples.ts` and the label plus file tabs to
-   `catalog.ts`.
-4. Wire the parser into the map in `lib/orm/parse.ts`.
+3. Add a sample schema in `lib/orm/samples.ts` and the label plus file tabs in
+   `lib/orm/catalog.ts`.
+4. Register the parser in the map in `lib/orm/parse.ts`.
 
-The diagram, rule engine and AI layer only know about `ParsedSchema`, so
-nothing else needs to change.
-
-### Why does the parser run on the server?
-
-`ts-morph` pulls in the TypeScript compiler (~6 MB). Putting that in the client
-bundle would badly slow the first load. Since `lib/orm/*` are pure functions,
-running them in the browser only takes calling the same functions inside a Web
-Worker — no UI changes required.
-
-### Colors and diagram metrics live in one place
-
-The whole palette sits in CSS variables in `app/globals.css`. Monaco and React
-Flow do not accept CSS classes, so colors are read from there with
-`getComputedStyle` (`lib/theme/read-palette.ts`).
-
-One trap: the CSS compiler shortens hex colors (`#ffffff` -> `#fff`) while
-Monaco only accepts 6/8-digit hex and throws otherwise. The read layer expands
-the short form back.
-
-Node sizes and handle positions are computed in `lib/flow/constants.ts` and
-written onto the node object. If you do not provide them, React Flow leaves
-measurement entirely to `ResizeObserver`; when no measurement arrives **no edges
-are drawn at all**. Since the values are already known there is no need for
-measurement — fitting the view is hand-computed instead of `fitView` for the
-same reason.
-
-## Quota and error policy
-
-An AI call spends a paid external quota directly, so `/api/analyze` goes
-through a three-layer counter (`lib/security/quota.ts`):
-
-| Layer | Default | Purpose |
-| --- | --- | --- |
-| IP / minute | 3 | Stops button mashing |
-| IP / day | 15 | Per-person share |
-| Total / day | 400 | The real brake — this protects the bill |
-
-Parsing (120/min), share creation (20/hour) and link opening (60/hour) are
-limited too; the first two burn CPU, the third burns disk. Counters are keyed by
-a **salted SHA-256 digest of the IP**: equality is all that is needed, so the raw
-IP is never stored. Windows are fixed and aligned to UTC, meaning "daily" really
-does reset at the start of the day.
-
-Storage is in process memory — the same trade-off as `lib/share/store.ts`. **On
-a multi-instance/serverless deployment each instance keeps its own counter**; in
-that case swap `lib/security/rate-limit.ts` for Upstash/Redis, the
-`createRateLimiter` interface can stay the same.
-
-### Why does every error say "daily limit reached"?
-
-Whatever goes wrong on the model side — quota exhausted, invalid key, a provider
-503, JSON that breaks mid-stream — the user sees a single 429 and a single
-message. The outcome is the same for them anyway, and the technical detail would
-only leak information about the server's configuration ("is a key set? which
-model? which provider?"). The real error goes to the server log, and in
-development it also reaches the screen.
-
-Two implementation details make this work:
-
-- **The stream is not opened until the first chunk arrives.** The 200 headers
-  are sent the moment `createTextStreamResponse` is called; if the model fails
-  after that the status code can no longer change and the client receives an
-  empty body. Waiting for the first chunk up front turns that case into a proper
-  429 — with no added latency, since the user is waiting for the first token
-  regardless.
-- **If the primary model cannot start, a fallback takes over.** The large flash
-  models occasionally return a "high demand" 503; `AI_FALLBACK_MODEL` steps in
-  and delivers the analysis anyway.
-
-## Security
-
-- **CSP** is set up in `proxy.ts` with a per-request nonce (`'strict-dynamic'`).
-  Monaco loads from the jsdelivr CDN and Clarity from its own domain; both are
-  scripts started via `createElement` by a nonce'd script, so they are allowed,
-  while an injected `<script>` cannot know the nonce and never runs. `style-src`
-  deliberately keeps `'unsafe-inline'`: Monaco emits its theme as runtime
-  `<style>` tags.
-- **Static headers** live in `next.config.ts`: `nosniff`, `X-Frame-Options:
-  DENY`, `Referrer-Policy`, `Permissions-Policy`, HSTS,
-  `poweredByHeader: false`.
-- **Body size** is counted while the stream is read and aborted the moment the
-  cap is passed (`lib/security/body.ts`). App Router has no equivalent of
-  `bodyParser.sizeLimit`, and `await request.json()` buffers the whole body.
-- **The share token never reaches Clarity.** The token sits in the address bar
-  and Clarity records page URLs, so analytics is not loaded at all on `/s/...`
-  pages.
-- **Schema content reaches the model only after parsing.** The JSON sent by the
-  client is not trusted; the server runs the same parser again.
-
-## Analytics
-
-Microsoft Clarity is loaded with `next/script` in
-`components/analytics/clarity.tsx`. It is disabled in development and on
-`/s/<token>` pages.
-
-The script tag's `id` **must not be "clarity"** — the browser puts elements with
-an id onto `window` under the same name, which stops Clarity's queue function
-from being created and makes the library fail with `a[c] is not a function`.
-
-## Locale and theme
-
-The theme is kept in `localStorage`, the locale in a cookie. The split is
-deliberate:
-
-- **Theme** is an attribute (`<html data-theme>`) that an inline script can fix
-  before the first paint — no flash.
-- **Locale** changes the text itself. Read from `localStorage`, the HTML
-  produced by the server would not match the client's text and every text node
-  would raise a hydration error. A cookie travels with the request, so the
-  server renders in the right language.
-
-Server-produced text (parser diagnostics, rule engine findings, AI output) is
-locale-aware too: the locale travels with the request.
-
-## Where is the workspace stored?
-
-The schema in the editor is written to `localStorage`
-(`ormlens:workspace:v1`) with a 500 ms debounce. The content survives closing
-the tab; **Reset** in the header clears the record and restores the samples.
-
-Not a cookie, because a cookie travels to the server on every HTTP request and
-is limited to about 4 KB in practice — while this content is user code that can
-reach 256 KB. The server does not need the data; keeping it in a cookie would
-only mean wasted bandwidth and data leaking into server logs. (The locale
-preference is a cookie for the opposite reason: the server needs it on the first
-render.)
-
-Restoring happens in a `useEffect` rather than during render: `localStorage`
-does not exist on the server, and reading it during the first render would cause
-a hydration mismatch. The stored value is always validated — the key is
-something the user can edit by hand, so its contents are treated as untrusted
-input.
-
-Restoring is skipped when the page was opened from a share link: what the user
-wants to see right then is the schema behind the link. As they edit, that
-content starts being saved too.
-
-## One-time share link
-
-**Share** in the header produces a link that carries the schema (and which ORM
-it is) to `/s/<token>`. The link can be opened **once**: the content is deleted
-from the server the moment it is read, and a second visit shows the "already
-used" screen. Unopened links delete themselves after 24 hours.
-
-Two design details:
-
-- **GET does not consume.** Link previews in messaging apps and browser
-  prefetching both issue a GET; if content were revealed on GET the link would
-  burn before the user ever saw it. So the page shows a confirmation screen
-  first and the content is only revealed by a user-triggered POST.
-- **The one-time guarantee comes from `rename`.** Rename is atomic on POSIX, so
-  out of two concurrent requests only one takes the record.
-
-Storage is the file system (`.data/shares`, not committed) so that no external
-dependency is required. It is correct on a single-process server (dev,
-`next start`, Docker). **On serverless each instance sees its own disk, so in
-production replace `lib/share/store.ts` with Redis/Vercel KV**; the four
-exported functions can stay the same.
+Add tests in `lib/orm/<orm>/<orm>.test.ts`. The existing suites are the
+specification for what each parser is expected to handle.
 
 ## Supported syntax
 
-The scope is pinned by tests in `lib/orm/*/**.test.ts`.
+Scope is pinned by the tests in `lib/orm/*/*.test.ts`.
 
-**Drizzle** — `pgTable`/`mysqlTable`/`sqliteTable` (dialect detected
-automatically), named and unnamed columns, chained methods (`primaryKey`,
-`notNull`, `unique`, `default*`, `array`, `references`), both the array and
-object form of the third argument (`index`, `uniqueIndex`,
-`primaryKey({columns})`, `foreignKey({...})`), `pgEnum` and inline
-`{ enum: [...] }`, `relations()` blocks.
+**Drizzle** — `pgTable`/`mysqlTable`/`sqliteTable` with automatic dialect
+detection, named and unnamed columns, chained builders (`primaryKey`, `notNull`,
+`unique`, `default*`, `array`, `references`), both array and object forms of the
+third table argument (`index`, `uniqueIndex`, `primaryKey({columns})`,
+`foreignKey({...})`), `pgEnum` and inline `{ enum: [...] }`, `relations()`
+blocks.
 
 **Prisma** — dialect from the `datasource` provider, `model`/`enum`/`view`
 blocks, `@id`/`@unique`/`@default`/`@map`/`@db.*`/`@relation`,
 `@@map`/`@@id`/`@@index`/`@@unique`, optional (`?`) and list (`[]`) fields. A
-relation field is distinguished from a foreign key column: only the latter shows
-up as a column in the diagram.
+relation field is distinguished from its foreign key column; only the column
+appears in the diagram.
 
 **TypeORM** — `@Entity` classes, `@PrimaryGeneratedColumn`/`@PrimaryColumn`/
-`@Column` options, the `@CreateDateColumn` family, type inference from the TS
-type, class-level and field-level `@Index`/`@Unique`,
+`@Column` options, the `@CreateDateColumn` family, type inference from the
+TypeScript type, class-level and field-level `@Index`/`@Unique`,
 `@ManyToOne`/`@OneToMany`/`@OneToOne`/`@ManyToMany`, `@JoinColumn({ name })`.
-The same distinction as Prisma: a relation field is not a column, the foreign
-key is a separate field.
 
 **MikroORM** — `@Entity({ tableName })`, `@PrimaryKey`/`@Property`/`@Enum`
-options, `@Index`/`@Unique({ properties })`, relation decorators. Key
-difference: a `@ManyToOne` field **is itself** the foreign key column.
+options, `@Index`/`@Unique({ properties })`, relation decorators. Note that a
+`@ManyToOne` property **is itself** the foreign key column.
 
 **Sequelize** — `sequelize.define(...)` and `class X extends Model` +
-`X.init(...)`, both shorthand (`DataTypes.STRING`) and long attribute forms,
+`X.init(...)`, shorthand (`DataTypes.STRING`) and long attribute forms,
 `field`/`allowNull`/`unique`/`primaryKey`/`autoIncrement`/`defaultValue`/
 `references`, `tableName`, `indexes`, default `timestamps` and the implicit
-`id`; `belongsTo`/`hasMany`/`hasOne`/`belongsToMany` calls (the foreign key
-column is added when the schema does not declare it).
+`id`, plus `belongsTo`/`hasMany`/`hasOne`/`belongsToMany` calls, which add the
+foreign key column when the model does not declare it.
 
 **Kysely** — table interfaces, table names from the `Database` map,
-`Generated<>` and `ColumnType<>` wrappers, nullability via `| null` and `?`,
-array types. Since the Kysely type layer carries no relations, foreign keys are
-only inferred **when a column name matches a table name** (`user_id` -> `users`),
-drawn with a dashed line, and constraint checks such as "missing onDelete" are
-not applied to those references.
+`Generated<>` and `ColumnType<>` unwrapping, nullability via `| null` and `?`,
+array types. Kysely's type layer carries no relations, so foreign keys are only
+inferred when a column name matches a table name (`user_id` → `users`). Those
+edges are drawn dashed, and constraint checks such as "missing onDelete" are not
+applied to them.
 
 **Mongoose** — `new Schema({...}, {...})`, the `mongoose.model('Name', schema)`
 mapping, shorthand (`String`) and long (`{ type: String, required: true }`)
 field forms, relations via `ref`, `enum`, `unique`, `index: true`,
 `schema.index()`, `timestamps`, embedded subdocuments, the implicit `_id`.
+
+## Interface details
+
+**Languages.** Turkish and English, switchable in the header. Server-produced
+text — parser diagnostics, rule engine findings, AI output — is localised too,
+because the locale travels with the request.
+
+**Theme.** Dark and light. The theme is an attribute on `<html>` set by an
+inline script before first paint, so there is no flash. The locale is a cookie
+rather than `localStorage` so the server can render the correct language
+without a hydration mismatch.
+
+**Colors.** The whole palette lives in CSS variables in `app/globals.css`.
+Monaco and React Flow do not accept CSS classes, so `lib/theme/read-palette.ts`
+reads the computed values back out.
+
+## Security
+
+Rate limits, the error masking policy, the threat model and the known
+limitations of a single-process deployment are documented in
+[SECURITY.md](SECURITY.md). Please report vulnerabilities privately through
+GitHub Security Advisories rather than in a public issue.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). Issues and pull requests are welcome,
+particularly new ORM parsers and additional rules for the rule engine.
+
+## License
+
+[MIT](LICENSE) © Tolga Zorlu

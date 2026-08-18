@@ -1,8 +1,36 @@
 {
   "name": "ormlens",
   "version": "0.1.0",
-  "packageManager": "pnpm@11.17.0",
   "private": true,
+  "description": "Turn Drizzle, Prisma, TypeORM, MikroORM, Sequelize, Kysely and Mongoose schemas into a live ER diagram, with a deterministic rule engine and AI review.",
+  "license": "MIT",
+  "author": "Tolga Zorlu",
+  "homepage": "https://github.com/tolgazorlu/ormlens#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tolgazorlu/ormlens.git"
+  },
+  "bugs": {
+    "url": "https://github.com/tolgazorlu/ormlens/issues"
+  },
+  "keywords": [
+    "orm",
+    "erd",
+    "schema",
+    "diagram",
+    "drizzle",
+    "prisma",
+    "typeorm",
+    "mikroorm",
+    "sequelize",
+    "kysely",
+    "mongoose",
+    "nextjs"
+  ],
+  "packageManager": "pnpm@11.17.0",
+  "engines": {
+    "node": ">=20.9.0"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",

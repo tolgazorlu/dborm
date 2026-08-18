@@ -16,6 +16,8 @@ const SECURITY_HEADERS = [
 ];
 
 const nextConfig: NextConfig = {
+  output: "standalone",
+
   serverExternalPackages: ["ts-morph"],
 
   poweredByHeader: false,

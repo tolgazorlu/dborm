@@ -91,9 +91,17 @@ function sweep(bucket: Map<string, Counter>, now: number): void {
 
 const IP_SALT = process.env.RATE_LIMIT_SALT ?? randomBytes(16).toString("hex");
 
-export function clientKey(request: Request): string {
-  const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-  const ip = forwarded || request.headers.get("x-real-ip")?.trim() || "unknown";
+const IP_HEADER = process.env.RATE_LIMIT_IP_HEADER;
 
-  return createHash("sha256").update(IP_SALT).update(ip).digest("base64url").slice(0, 24);
+export function clientKey(request: Request): string {
+  const ip = IP_HEADER
+    ? request.headers.get(IP_HEADER)?.split(",")[0]?.trim()
+    : request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      request.headers.get("x-real-ip")?.trim();
+
+  return createHash("sha256")
+    .update(IP_SALT)
+    .update(ip || "unknown")
+    .digest("base64url")
+    .slice(0, 24);
 }

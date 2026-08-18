@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import Script from "next/script";
 
-const CLARITY_PROJECT_ID = "y38g8fuokb";
+const CLARITY_PROJECT_ID = process.env.NEXT_PUBLIC_CLARITY_PROJECT_ID;
 
 const CLARITY_SNIPPET = `(function(c,l,a,r,i,t,y){
 c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
@@ -14,6 +14,7 @@ y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
 export default function Clarity({ nonce }: { nonce?: string }) {
   const pathname = usePathname();
 
+  if (!CLARITY_PROJECT_ID) return null;
   if (process.env.NODE_ENV === "development") return null;
   if (pathname.startsWith("/s/")) return null;
 

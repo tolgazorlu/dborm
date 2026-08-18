@@ -1,6 +1,6 @@
 "use client";
 
-import Editor, { type BeforeMount, type Monaco, type OnMount } from "@monaco-editor/react";
+import Editor, { loader, type BeforeMount, type Monaco, type OnMount } from "@monaco-editor/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useI18n } from "@/components/i18n-provider";
@@ -16,6 +16,9 @@ export interface SchemaEditorProps {
 }
 
 const THEME_NAME = "ormlens";
+
+const MONACO_CDN = process.env.NEXT_PUBLIC_MONACO_CDN;
+if (MONACO_CDN) loader.config({ paths: { vs: MONACO_CDN } });
 
 function defineTheme(monaco: Monaco, theme: Theme): boolean {
   const palette = readCodePalette();
