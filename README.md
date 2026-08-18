@@ -61,9 +61,11 @@ docker run -p 3000:3000 \
 The image is a multi-stage build on top of Next.js standalone output and runs
 as a non-root user. Standalone output is opt-in through
 `NEXT_OUTPUT_STANDALONE=true`, which the Dockerfile sets — leaving it off keeps
-the default build that Vercel and other managed platforms expect. `/app/.data` holds one-time share records and, when
-authentication is on, the account and session files — mount it as a volume so
-they survive a restart. A health check is exposed at `/api/health`.
+the default build that Vercel and other managed platforms expect.
+
+`/app/.data` holds one-time share records and, when authentication is on, the
+account and session files. Mount it as a volume so they survive a restart. A
+health check is exposed at `/api/health`.
 
 ### Node
 
@@ -75,11 +77,11 @@ pnpm start
 ### Vercel and other serverless platforms
 
 It deploys as-is, but read [Known limitations](SECURITY.md#known-limitations)
-first. Two modules assume a single long-lived process **with a writable disk**:
+first. Three modules assume a single long-lived process **with a writable
+disk**:
 
 - `lib/security/rate-limit.ts` keeps rate limit counters in memory
 - `lib/share/store.ts` writes share records to the local file system
-
 - `lib/auth/store.ts` writes the account and session records to the same place
 
 On serverless each instance has its own memory, and the project directory is
