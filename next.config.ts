@@ -16,7 +16,7 @@ const SECURITY_HEADERS = [
 ];
 
 const nextConfig: NextConfig = {
-  output: "standalone",
+  output: process.env.NEXT_OUTPUT_STANDALONE === "true" ? "standalone" : undefined,
 
   serverExternalPackages: ["ts-morph"],
 

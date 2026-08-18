@@ -75,7 +75,9 @@ Read these before deploying publicly.
   means deleting `.data/auth/account.json` (or clearing `AUTH_EMAIL` and
   `AUTH_PASSWORD_HASH`) and running setup again.
 - **Sessions are stored on the local file system**, so the multi-instance
-  caveat above applies to sign-ins as well.
+  caveat above applies to sign-ins as well. On a platform with a read-only
+  project directory (Vercel and most serverless hosts) session writes fail and
+  sign-in does not work at all.
 - **The legal pages are drafts, not legal advice.** They describe this
   codebase's actual behaviour accurately but have not been reviewed by a lawyer.
 - **The Monaco editor loads from a public CDN** (jsDelivr) without subresource

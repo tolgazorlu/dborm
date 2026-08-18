@@ -59,7 +59,9 @@ docker run -p 3000:3000 \
 ```
 
 The image is a multi-stage build on top of Next.js standalone output and runs
-as a non-root user. `/app/.data` holds one-time share records and, when
+as a non-root user. Standalone output is opt-in through
+`NEXT_OUTPUT_STANDALONE=true`, which the Dockerfile sets — leaving it off keeps
+the default build that Vercel and other managed platforms expect. `/app/.data` holds one-time share records and, when
 authentication is on, the account and session files — mount it as a volume so
 they survive a restart. A health check is exposed at `/api/health`.
 
@@ -73,15 +75,22 @@ pnpm start
 ### Vercel and other serverless platforms
 
 It deploys as-is, but read [Known limitations](SECURITY.md#known-limitations)
-first. Two modules assume a single long-lived process:
+first. Two modules assume a single long-lived process **with a writable disk**:
 
 - `lib/security/rate-limit.ts` keeps rate limit counters in memory
 - `lib/share/store.ts` writes share records to the local file system
 
-On serverless each instance has its own memory and its own disk, so rate limits
-multiply by instance count and share links break across instances. Both modules
-are small and self-contained — swap them for Redis or a KV store and the rest of
-the app does not change.
+- `lib/auth/store.ts` writes the account and session records to the same place
+
+On serverless each instance has its own memory, and the project directory is
+read-only. Rate limits multiply by instance count, and anything that writes —
+creating a share link, first-run setup, signing in — fails outright. All three
+modules are small and self-contained; swap them for Redis or a KV store and the
+rest of the app does not change.
+
+If you want authentication on a serverless deployment today, seed the account
+with `AUTH_EMAIL` and `AUTH_PASSWORD_HASH` so setup never needs to write, and
+replace the session half of `lib/auth/store.ts` with your own store.
 
 ### Behind a reverse proxy
 
