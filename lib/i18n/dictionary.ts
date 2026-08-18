@@ -37,6 +37,43 @@ const tr = {
     empty:
       "Şemanızı model gözüyle değerlendirmek için yukarıdaki düğmeye basın. Eksik index, hatalı ilişki, performans ve güvenlik riskleri raporlanır.",
   },
+  auth: {
+    setupTitle: "Bu sunucuyu koruyun",
+    setupBody:
+      "Bu ORMLens sunucusu giriş gerektirecek şekilde yapılandırılmış. Kullanacağınız hesabı şimdi oluşturun; kayıt bundan sonra kapanır.",
+    setupWarning:
+      "Sunucu herkese açıksa bu adımı hemen tamamlayın — hesabı ilk oluşturan kişi sunucunun sahibi olur.",
+    loginTitle: "Giriş yapın",
+    loginBody: "Devam etmek için hesabınızla giriş yapın.",
+    email: "E-posta",
+    password: "Şifre",
+    passwordConfirm: "Şifre (tekrar)",
+    setupToken: "Kurulum anahtarı",
+    passwordHint: (minLength: number) => `En az ${minLength} karakter.`,
+    passwordMismatch: "Şifreler eşleşmiyor.",
+    createAccount: "Hesabı oluştur",
+    creating: "Oluşturuluyor…",
+    signIn: "Giriş yap",
+    signingIn: "Giriş yapılıyor…",
+    signOut: "Çıkış yap",
+    failed: "İşlem tamamlanamadı.",
+  },
+  legal: {
+    title: "Yasal",
+    privacy: "Gizlilik Politikası",
+    kvkk: "KVKK Aydınlatma Metni",
+    cookies: "Çerez Politikası",
+    back: "Uygulamaya dön",
+    updated: (date: string) => `Son güncelleme: ${date}`,
+    unconfigured:
+      "Bu sunucunun işletmecisi henüz iletişim bilgilerini yapılandırmamış. Aşağıdaki metin bir şablondur.",
+  },
+  consent: {
+    body: "Bu site, kullanımı anlamak için isteğe bağlı analitik çerezleri kullanır. Yalnızca kabul ederseniz yüklenir.",
+    accept: "Kabul et",
+    decline: "Reddet",
+    more: "Çerez Politikası",
+  },
   canvas: {
     emptyTitle: "Henüz çizilecek tablo yok.",
     emptyHint: "Soldaki editöre bir şema yapıştırın; diyagram yazdıkça güncellenir.",
@@ -124,6 +161,43 @@ const en: Dictionary = {
       "The daily AI analysis limit has been reached. Please try again later — the rule engine and the diagram keep working.",
     empty:
       "Press the button above to have a model review your schema. It reports missing indexes, broken relations, performance and security risks.",
+  },
+  auth: {
+    setupTitle: "Protect this server",
+    setupBody:
+      "This ORMLens server is configured to require a sign-in. Create the account you will use now; registration closes afterwards.",
+    setupWarning:
+      "Complete this step immediately if the server is publicly reachable — whoever creates the account first owns the server.",
+    loginTitle: "Sign in",
+    loginBody: "Sign in with your account to continue.",
+    email: "Email",
+    password: "Password",
+    passwordConfirm: "Password (again)",
+    setupToken: "Setup key",
+    passwordHint: (minLength: number) => `At least ${minLength} characters.`,
+    passwordMismatch: "The passwords do not match.",
+    createAccount: "Create account",
+    creating: "Creating…",
+    signIn: "Sign in",
+    signingIn: "Signing in…",
+    signOut: "Sign out",
+    failed: "Could not complete the request.",
+  },
+  legal: {
+    title: "Legal",
+    privacy: "Privacy Policy",
+    kvkk: "KVKK Disclosure",
+    cookies: "Cookie Policy",
+    back: "Back to the app",
+    updated: (date: string) => `Last updated: ${date}`,
+    unconfigured:
+      "The operator of this server has not configured its contact details yet. The text below is a template.",
+  },
+  consent: {
+    body: "This site uses optional analytics cookies to understand usage. They load only if you accept.",
+    accept: "Accept",
+    decline: "Decline",
+    more: "Cookie Policy",
   },
   canvas: {
     emptyTitle: "Nothing to draw yet.",

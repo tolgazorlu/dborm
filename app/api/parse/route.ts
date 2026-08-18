@@ -1,4 +1,5 @@
 import { runStaticChecks } from "@/lib/analysis/static-checks";
+import { requestIsAuthorized } from "@/lib/auth/session";
 import { API_MESSAGES } from "@/lib/i18n/api-messages";
 import { localeFromRequest, toLocale } from "@/lib/i18n/locales";
 import { toOrmId } from "@/lib/orm/catalog";
@@ -8,6 +9,13 @@ import { checkParseQuota, tooManyRequests } from "@/lib/security/quota";
 import { clientKey } from "@/lib/security/rate-limit";
 
 export async function POST(request: Request): Promise<Response> {
+  if (!(await requestIsAuthorized(request))) {
+    return Response.json(
+      { error: API_MESSAGES[localeFromRequest(request)].unauthorized },
+      { status: 401 },
+    );
+  }
+
   const denied = checkParseQuota(clientKey(request));
   if (denied) {
     return tooManyRequests(API_MESSAGES[localeFromRequest(request)].tooManyRequests, denied);

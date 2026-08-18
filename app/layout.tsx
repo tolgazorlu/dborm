@@ -46,8 +46,8 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       <body className="flex h-full flex-col overflow-hidden">
         <I18nProvider initialLocale={locale}>
           <ThemeProvider>{children}</ThemeProvider>
+          <Clarity nonce={nonce} />
         </I18nProvider>
-        <Clarity nonce={nonce} />
       </body>
     </html>
   );

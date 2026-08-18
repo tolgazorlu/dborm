@@ -37,6 +37,11 @@ const shareOpenLimiter = createRateLimiter("share:open", {
   windowMs: HOUR,
 });
 
+const authLimiter = createRateLimiter("auth", {
+  limit: envInt("AUTH_RATE_LIMIT", 10),
+  windowMs: 15 * MINUTE,
+});
+
 export function checkAiQuota(key: string): RateLimitVerdict | null {
   for (const verdict of [
     () => aiBurst.check(key),
@@ -59,6 +64,10 @@ export function checkShareCreateQuota(key: string): RateLimitVerdict | null {
 
 export function checkShareOpenQuota(key: string): RateLimitVerdict | null {
   return rejection(shareOpenLimiter.check(key));
+}
+
+export function checkAuthQuota(key: string): RateLimitVerdict | null {
+  return rejection(authLimiter.check(key));
 }
 
 function rejection(verdict: RateLimitVerdict): RateLimitVerdict | null {

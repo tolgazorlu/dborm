@@ -37,7 +37,8 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test \"lib/**/*.test.ts\""
+    "test": "tsx --test \"lib/**/*.test.ts\"",
+    "auth:hash": "tsx scripts/hash-password.mjs"
   },
   "dependencies": {
     "@ai-sdk/google": "^4.0.44",

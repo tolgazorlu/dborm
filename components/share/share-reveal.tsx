@@ -11,6 +11,8 @@ import type { OrmId } from "@/lib/orm/types";
 export interface ShareRevealProps {
   token: string;
   expiresAt: number | null;
+  showSignOut?: boolean;
+  showLegal?: boolean;
 }
 
 interface Payload {
@@ -18,7 +20,12 @@ interface Payload {
   sources: Record<string, string>;
 }
 
-export default function ShareReveal({ token, expiresAt }: ShareRevealProps) {
+export default function ShareReveal({
+  token,
+  expiresAt,
+  showSignOut,
+  showLegal,
+}: ShareRevealProps) {
   const { t, locale } = useI18n();
   const [payload, setPayload] = useState<Payload | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -40,7 +47,14 @@ export default function ShareReveal({ token, expiresAt }: ShareRevealProps) {
   }, [token, t.reveal.failed]);
 
   if (payload) {
-    return <Workspace initialOrm={payload.orm} initialSources={payload.sources} />;
+    return (
+      <Workspace
+        initialOrm={payload.orm}
+        initialSources={payload.sources}
+        showSignOut={showSignOut}
+        showLegal={showLegal}
+      />
+    );
   }
 
   return (

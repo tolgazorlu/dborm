@@ -17,6 +17,9 @@ required.
 Nothing is sent anywhere unless you press the AI button. The parser, the
 diagram and the rule engine all run on your own server.
 
+Open to everyone by default. Flip one environment variable and it is behind an
+email and password instead — see [Authentication](#authentication).
+
 ## Quick start
 
 ```bash
@@ -50,14 +53,15 @@ npm and yarn work too; pnpm is what the lockfile is built with.
 docker build -t ormlens .
 docker run -p 3000:3000 \
   -e GOOGLE_GENERATIVE_AI_API_KEY=your-key-here \
+  -e AUTH_ENABLED=true \
   -v ormlens-data:/app/.data \
   ormlens
 ```
 
 The image is a multi-stage build on top of Next.js standalone output and runs
-as a non-root user. `/app/.data` holds one-time share records; mount it as a
-volume if you want links to survive a restart. A health check is exposed at
-`/api/health`.
+as a non-root user. `/app/.data` holds one-time share records and, when
+authentication is on, the account and session files — mount it as a volume so
+they survive a restart. A health check is exposed at `/api/health`.
 
 ### Node
 
@@ -91,6 +95,106 @@ RATE_LIMIT_IP_HEADER=cf-connecting-ip
 Do not expose the app directly to the internet without a proxy — the header
 would be client-controlled and the limits bypassable.
 
+## Authentication
+
+ORMLens ships **open**: anyone who can reach the server can use it. That is the
+right default for a tool a team runs on its own network.
+
+If your instance is reachable from the internet and you do not want it used by
+strangers, turn on the sign-in gate:
+
+```
+AUTH_ENABLED=true
+```
+
+With the gate on, everything is protected — the workspace, share pages, and all
+data APIs return 401 to unauthenticated callers. The legal pages stay public,
+because a privacy policy behind a login is useless.
+
+### First run
+
+The first person to open the app sees a one-time setup screen and creates the
+account. Registration closes permanently after that; there is no sign-up page
+and no password reset flow.
+
+**Complete this immediately after deploying.** Until the account exists, whoever
+reaches the app first can claim it. If there is any gap between deploy and
+setup, set a setup key first and only you can complete it:
+
+```
+AUTH_SETUP_TOKEN=some-long-random-string
+```
+
+### Stateless deployments
+
+The account is stored in `.data/auth/account.json`. If your platform has no
+persistent disk, provide the credentials as environment variables instead and
+the setup screen is skipped entirely:
+
+```bash
+pnpm auth:hash          # prompts for a password, prints AUTH_PASSWORD_HASH=...
+```
+
+```
+AUTH_EMAIL=you@example.com
+AUTH_PASSWORD_HASH=scrypt$15$8$1$...
+```
+
+Sessions still need a writable `.data` directory, so this only removes the
+account file, not the session store.
+
+### How it is secured
+
+- Passwords are hashed with **scrypt** (N=2^15, r=8, p=1, 64-byte key, random
+  16-byte salt per password) using Node's built-in crypto, and compared in
+  constant time. No password ever touches disk.
+- A failed sign-in against a non-existent account still performs a full hash
+  verification, so response timing does not reveal whether an account exists.
+- Sessions are **opaque 32-byte random tokens**. Only their SHA-256 digest is
+  stored server-side, so a leaked session file cannot be replayed.
+- The session cookie is `HttpOnly`, `SameSite=Lax`, and `Secure` over HTTPS,
+  where it also uses the `__Host-` prefix.
+- Every auth endpoint verifies that the `Origin` header matches the host, which
+  blocks cross-site POSTs on top of `SameSite`.
+- Sign-in and setup are rate limited (`AUTH_RATE_LIMIT`, 10 attempts per IP per
+  15 minutes).
+- Signing out deletes the session record server-side, not just the cookie.
+
+## Legal pages
+
+The app can serve a **Privacy Policy**, a **KVKK disclosure** (Turkish data
+protection law) and a **Cookie Policy** at `/legal/privacy`, `/legal/kvkk` and
+`/legal/cookies`, in both Turkish and English.
+
+These pages are generated from your configuration, so they describe what your
+instance actually does: the cookie table lists the session cookie only when auth
+is on, and the analytics sections appear only when analytics is configured.
+
+Set your operator details to activate them and show the "Legal" link in the
+header:
+
+```
+LEGAL_ENTITY=Your Company Ltd.
+LEGAL_CONTACT=privacy@yourcompany.com
+LEGAL_ADDRESS=Optional postal address
+```
+
+Without `LEGAL_ENTITY` and `LEGAL_CONTACT` the pages still render but show a
+banner saying the operator has not configured them, and the header link is
+hidden.
+
+> **These are drafts, not legal advice.** They were written to describe this
+> codebase accurately, which is the hard part, but the wording has not been
+> reviewed by a lawyer. Have counsel review them before you rely on them, and
+> update `LAST_UPDATED` in `lib/legal/operator.ts` when you change the text.
+
+### Cookie consent
+
+When `NEXT_PUBLIC_CLARITY_PROJECT_ID` is set, a consent banner appears and
+**no analytics script loads until the visitor accepts**. Declining stores the
+choice and loads nothing. Analytics is never loaded on `/s/...` share pages or
+on the legal pages.
+
 ## Configuration
 
 Everything is optional except the API key. Defaults are in parentheses.
@@ -120,12 +224,35 @@ Windows are fixed and aligned to UTC, so a daily limit really does reset at the
 start of the day. IPs are never stored — only a salted SHA-256 digest, which is
 all an equality check needs.
 
+### Authentication
+
+| Variable | Description |
+| --- | --- |
+| `AUTH_ENABLED` | `true` puts the whole app behind an email and password. Off by default. |
+| `AUTH_SETUP_TOKEN` | If set, the first-run setup screen also requires this key. |
+| `AUTH_SESSION_TTL_HOURS` | Session lifetime (`168`, seven days). |
+| `AUTH_EMAIL` | Account email for stateless deployments, instead of the setup screen. |
+| `AUTH_PASSWORD_HASH` | scrypt hash for that account. Generate with `pnpm auth:hash`. |
+| `AUTH_RATE_LIMIT` | Sign-in and setup attempts per IP per 15 minutes (`10`). |
+
+### Legal pages
+
+| Variable | Description |
+| --- | --- |
+| `LEGAL_ENTITY` | Operator name shown as the data controller. Enables the legal pages' header link. |
+| `LEGAL_CONTACT` | Contact address for data protection requests. |
+| `LEGAL_ADDRESS` | Optional postal address. |
+| `AI_PROVIDER_NAME` | How the AI provider is named in the legal text (`Google (Gemini API)`). |
+
 ### Frontend
+
+These are inlined into the client bundle **at build time**, so a prebuilt Docker
+image cannot be reconfigured with them at runtime — rebuild if you change them.
 
 | Variable | Description |
 | --- | --- |
 | `NEXT_PUBLIC_MONACO_CDN` | Where to load the Monaco editor from. Defaults to jsDelivr; point it at your own mirror for air-gapped or policy-restricted deployments. The CSP follows this value automatically. |
-| `NEXT_PUBLIC_CLARITY_PROJECT_ID` | Enables Microsoft Clarity analytics. **Disabled unless set.** Never loaded in development or on share pages, since the share token is in the URL. |
+| `NEXT_PUBLIC_CLARITY_PROJECT_ID` | Enables Microsoft Clarity analytics behind a consent banner. **Disabled unless set.** Never loaded in development, on share pages or on legal pages. |
 
 ## Commands
 
@@ -137,6 +264,7 @@ all an equality check needs.
 | `pnpm test` | Parser tests (60 tests, `node:test`) |
 | `pnpm typecheck` | `tsc --noEmit` |
 | `pnpm lint` | ESLint |
+| `pnpm auth:hash` | Print an `AUTH_PASSWORD_HASH` for a password |
 
 ## How it works
 
@@ -145,10 +273,13 @@ proxy.ts                    CSP header + per-request nonce
 app/
   layout.tsx                Theme script, locale cookie, providers
   page.tsx                  Opens the workspace
+  login/page.tsx            First-run setup or sign-in
+  legal/...                 Privacy, KVKK and cookie pages
   s/[token]/page.tsx        One-time share link, confirmation screen
   api/parse/route.ts        Code -> ParsedSchema + static findings
   api/analyze/route.ts      ParsedSchema -> streaming AI analysis
   api/share/...             Create / check / open a one-time link
+  api/auth/...              Setup, sign-in, sign-out
   api/health/route.ts       Liveness probe
 components/
   workspace.tsx             Client orchestrator (ORM, tabs, layout)
@@ -162,6 +293,8 @@ lib/
   analysis/                 Deterministic rule engine
   ai/                       Zod output schema, prompt, schema digest
   i18n/                     Dictionaries and locale helpers
+  auth/                     scrypt hashing, account and session store
+  legal/                    Configuration-driven legal document text
   security/                 Rate limit counters, IP key, body size guard
   share/store.ts            One-time record store
   storage/workspace.ts      Editor persistence in localStorage

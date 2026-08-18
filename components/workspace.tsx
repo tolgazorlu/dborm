@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import Link from "next/link";
+
+import SignOutButton from "@/components/auth/sign-out-button";
 import SchemaCanvas from "@/components/canvas/schema-canvas";
 import SchemaEditor from "@/components/editor/schema-editor";
 import { useI18n } from "@/components/i18n-provider";
@@ -24,6 +27,8 @@ type PanelTab = "checks" | "ai";
 export interface WorkspaceProps {
   initialOrm?: OrmId;
   initialSources?: Record<string, string>;
+  showSignOut?: boolean;
+  showLegal?: boolean;
 }
 
 const TOGGLE_BASE =
@@ -32,6 +37,8 @@ const TOGGLE_BASE =
 export default function Workspace({
   initialOrm = "drizzle",
   initialSources: sharedSources,
+  showSignOut = false,
+  showLegal = false,
 }: WorkspaceProps) {
   const { t, locale } = useI18n();
   const { theme } = useTheme();
@@ -228,8 +235,22 @@ export default function Workspace({
             {t.header.reset}
           </button>
 
+          {showLegal ? (
+            <Link
+              href="/legal/privacy"
+              className={`${TOGGLE_BASE} border-line text-fg-faint hover:bg-surface-2 hover:text-fg`}
+            >
+              {t.legal.title}
+            </Link>
+          ) : null}
+
           <LocaleToggle />
           <ThemeToggle />
+          {showSignOut ? (
+            <SignOutButton
+              className={`${TOGGLE_BASE} border-line text-fg-muted hover:bg-surface-2 hover:text-fg`}
+            />
+          ) : null}
         </div>
       </header>
 

@@ -4,13 +4,21 @@
     {
       "name": "ormlens",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
       "port": 3000
     },
     {
       "name": "ormlens-prod",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["run", "start", "--port", "3100"],
+      "runtimeArgs": [
+        "run",
+        "start",
+        "--port",
+        "3100"
+      ],
       "port": 3100
     }
   ]

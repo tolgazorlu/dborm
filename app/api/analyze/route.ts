@@ -10,6 +10,7 @@ import {
 import { analysisSchema } from "@/lib/ai/analysis-schema";
 import { buildAnalysisPrompt, buildSystemPrompt } from "@/lib/ai/prompt";
 import { runStaticChecks } from "@/lib/analysis/static-checks";
+import { requestIsAuthorized } from "@/lib/auth/session";
 import { API_MESSAGES } from "@/lib/i18n/api-messages";
 import { localeFromRequest, toLocale } from "@/lib/i18n/locales";
 import { toOrmId } from "@/lib/orm/catalog";
@@ -26,6 +27,13 @@ const DEFAULT_FALLBACK_MODEL = "gemini-3.5-flash-lite";
 const IS_DEV = process.env.NODE_ENV === "development";
 
 export async function POST(request: Request): Promise<Response> {
+  if (!(await requestIsAuthorized(request))) {
+    return Response.json(
+      { error: API_MESSAGES[localeFromRequest(request)].unauthorized },
+      { status: 401 },
+    );
+  }
+
   const denied = checkAiQuota(clientKey(request));
   if (denied) {
     return tooManyRequests(API_MESSAGES[localeFromRequest(request)].aiLimit, denied);

@@ -1,3 +1,4 @@
+import { requestIsAuthorized } from "@/lib/auth/session";
 import { API_MESSAGES } from "@/lib/i18n/api-messages";
 import { localeFromRequest, toLocale } from "@/lib/i18n/locales";
 import { ORM_CATALOG, toOrmId } from "@/lib/orm/catalog";
@@ -7,6 +8,13 @@ import { clientKey } from "@/lib/security/rate-limit";
 import { createShare } from "@/lib/share/store";
 
 export async function POST(request: Request): Promise<Response> {
+  if (!(await requestIsAuthorized(request))) {
+    return Response.json(
+      { error: API_MESSAGES[localeFromRequest(request)].unauthorized },
+      { status: 401 },
+    );
+  }
+
   const denied = checkShareCreateQuota(clientKey(request));
   if (denied) {
     return tooManyRequests(API_MESSAGES[localeFromRequest(request)].tooManyRequests, denied);

@@ -7,7 +7,7 @@ const eslintConfig = defineConfig([
   ...nextTs,
   globalIgnores([".next/**", "out/**", "build/**", "next-env.d.ts"]),
   {
-    files: ["components/workspace.tsx"],
+    files: ["components/workspace.tsx", "components/analytics/clarity.tsx"],
     rules: { "react-hooks/set-state-in-effect": "off" },
   },
 ]);

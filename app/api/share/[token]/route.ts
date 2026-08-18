@@ -1,3 +1,4 @@
+import { requestIsAuthorized } from "@/lib/auth/session";
 import { API_MESSAGES } from "@/lib/i18n/api-messages";
 import { localeFromRequest } from "@/lib/i18n/locales";
 import { checkShareOpenQuota, tooManyRequests } from "@/lib/security/quota";
@@ -10,6 +11,13 @@ export async function GET(
   request: Request,
   context: RouteContext<"/api/share/[token]">,
 ): Promise<Response> {
+  if (!(await requestIsAuthorized(request))) {
+    return Response.json(
+      { error: API_MESSAGES[localeFromRequest(request)].unauthorized },
+      { status: 401, headers: NO_STORE },
+    );
+  }
+
   const denied = checkShareOpenQuota(clientKey(request));
   if (denied) {
     return tooManyRequests(API_MESSAGES[localeFromRequest(request)].tooManyRequests, denied);
@@ -28,6 +36,13 @@ export async function POST(
   request: Request,
   context: RouteContext<"/api/share/[token]">,
 ): Promise<Response> {
+  if (!(await requestIsAuthorized(request))) {
+    return Response.json(
+      { error: API_MESSAGES[localeFromRequest(request)].unauthorized },
+      { status: 401, headers: NO_STORE },
+    );
+  }
+
   const denied = checkShareOpenQuota(clientKey(request));
   if (denied) {
     return tooManyRequests(API_MESSAGES[localeFromRequest(request)].tooManyRequests, denied);
