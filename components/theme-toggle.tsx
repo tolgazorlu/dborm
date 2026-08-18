@@ -1,17 +1,20 @@
 "use client";
 
+import { useI18n } from "@/components/i18n-provider";
+import { ICON_BUTTON_BASE } from "@/components/ui/icon-button";
 import { useTheme } from "./theme-provider";
 
 export default function ThemeToggle() {
   const { toggle } = useTheme();
+  const { t } = useI18n();
 
   return (
     <button
       type="button"
       onClick={toggle}
-      title="Toggle theme"
-      aria-label="Toggle theme"
-      className="flex size-7 shrink-0 items-center justify-center rounded-md border border-line text-fg-muted transition-colors hover:bg-surface-2 hover:text-fg"
+      title={t.header.theme}
+      aria-label={t.header.theme}
+      className={`${ICON_BUTTON_BASE} border-line text-fg-muted hover:bg-surface-2 hover:text-fg`}
     >
       <svg
         viewBox="0 0 20 20"

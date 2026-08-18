@@ -37,6 +37,17 @@ const tr = {
     empty:
       "Şemanızı model gözüyle değerlendirmek için yukarıdaki düğmeye basın. Eksik index, hatalı ilişki, performans ve güvenlik riskleri raporlanır.",
   },
+  confirm: {
+    cancel: "Vazgeç",
+    relayoutTitle: "Diyagramı yeniden düzenle",
+    relayoutBody:
+      "Elle taşıdığınız tablolar otomatik yerleşime döner. Şema kodunuza dokunulmaz.",
+    relayoutAction: "Yeniden düzenle",
+    resetTitle: "Şemayı sıfırla",
+    resetBody:
+      "Kaydedilmiş şemanız silinir ve örnek şemalar geri gelir. Bu işlem geri alınamaz.",
+    resetAction: "Sıfırla",
+  },
   auth: {
     setupTitle: "Bu sunucuyu koruyun",
     setupBody:
@@ -161,6 +172,17 @@ const en: Dictionary = {
       "The daily AI analysis limit has been reached. Please try again later — the rule engine and the diagram keep working.",
     empty:
       "Press the button above to have a model review your schema. It reports missing indexes, broken relations, performance and security risks.",
+  },
+  confirm: {
+    cancel: "Cancel",
+    relayoutTitle: "Re-layout the diagram",
+    relayoutBody:
+      "Tables you moved by hand return to the automatic layout. Your schema code is untouched.",
+    relayoutAction: "Re-layout",
+    resetTitle: "Reset the schema",
+    resetBody:
+      "Your saved schema is deleted and the sample schemas come back. This cannot be undone.",
+    resetAction: "Reset",
   },
   auth: {
     setupTitle: "Protect this server",

@@ -14,6 +14,17 @@ import ChecksPanel from "@/components/panels/checks-panel";
 import ShareDialog from "@/components/share/share-dialog";
 import { useTheme } from "@/components/theme-provider";
 import ThemeToggle from "@/components/theme-toggle";
+import ConfirmDialog from "@/components/ui/confirm-dialog";
+import IconButton, { iconButtonClass } from "@/components/ui/icon-button";
+import {
+  EditorIcon,
+  HorizontalIcon,
+  LegalIcon,
+  PanelIcon,
+  RelayoutIcon,
+  ResetIcon,
+  VerticalIcon,
+} from "@/components/ui/icons";
 import type { LayoutDirection } from "@/lib/flow/layout";
 import { buildFlow } from "@/lib/flow/to-flow";
 import { useParsedSchema } from "@/lib/hooks/use-parsed-schema";
@@ -30,9 +41,6 @@ export interface WorkspaceProps {
   showSignOut?: boolean;
   showLegal?: boolean;
 }
-
-const TOGGLE_BASE =
-  "rounded-md border px-2 py-1 text-[11px] font-medium transition-colors whitespace-nowrap";
 
 export default function Workspace({
   initialOrm = "drizzle",
@@ -115,7 +123,15 @@ export default function Workspace({
     setHighlight(table ? { [table]: columns } : {});
   }, []);
 
+  const [pendingAction, setPendingAction] = useState<"relayout" | "reset" | null>(null);
+
   const relayout = useCallback(() => setLayoutVersion((version) => version + 1), []);
+
+  const confirmPending = useCallback(() => {
+    if (pendingAction === "relayout") relayout();
+    if (pendingAction === "reset") resetToSamples();
+    setPendingAction(null);
+  }, [pendingAction, relayout, resetToSamples]);
 
   const errorCount = schema.diagnostics.filter((item) => item.level === "error").length;
   const entityCount =
@@ -179,78 +195,62 @@ export default function Workspace({
 
           <span className="mx-0.5 h-4 w-px bg-line" aria-hidden="true" />
 
-          <button
-            type="button"
+          <IconButton
+            label={t.header.editor}
+            active={showEditor}
+            aria-pressed={showEditor}
             onClick={() => {
               setShowEditor((value) => !value);
               setFitSignal((value) => value + 1);
             }}
-            aria-pressed={showEditor}
-            className={`${TOGGLE_BASE} ${
-              showEditor
-                ? "border-line-strong bg-surface-2 text-fg"
-                : "border-line text-fg-faint hover:bg-surface-2 hover:text-fg"
-            }`}
           >
-            {t.header.editor}
-          </button>
-          <button
-            type="button"
+            <EditorIcon />
+          </IconButton>
+
+          <IconButton
+            label={t.header.panel}
+            active={showPanel}
+            aria-pressed={showPanel}
             onClick={() => {
               setShowPanel((value) => !value);
               setFitSignal((value) => value + 1);
             }}
-            aria-pressed={showPanel}
-            className={`${TOGGLE_BASE} ${
-              showPanel
-                ? "border-line-strong bg-surface-2 text-fg"
-                : "border-line text-fg-faint hover:bg-surface-2 hover:text-fg"
-            }`}
           >
-            {t.header.panel}
-          </button>
-          <button
-            type="button"
+            <PanelIcon />
+          </IconButton>
+
+          <IconButton
+            label={direction === "LR" ? t.header.horizontal : t.header.vertical}
             onClick={() => {
               setDirection((current) => (current === "LR" ? "TB" : "LR"));
               relayout();
             }}
-            className={`${TOGGLE_BASE} border-line text-fg-muted hover:bg-surface-2 hover:text-fg`}
           >
-            {direction === "LR" ? t.header.horizontal : t.header.vertical}
-          </button>
-          <button
-            type="button"
-            onClick={relayout}
-            className={`${TOGGLE_BASE} border-line text-fg-muted hover:bg-surface-2 hover:text-fg`}
-          >
-            {t.header.relayout}
-          </button>
-          <button
-            type="button"
-            onClick={resetToSamples}
-            title={t.header.resetHint}
-            className={`${TOGGLE_BASE} border-line text-fg-muted hover:bg-surface-2 hover:text-fg`}
-          >
-            {t.header.reset}
-          </button>
+            {direction === "LR" ? <HorizontalIcon /> : <VerticalIcon />}
+          </IconButton>
+
+          <IconButton label={t.header.relayout} onClick={() => setPendingAction("relayout")}>
+            <RelayoutIcon />
+          </IconButton>
+
+          <IconButton label={t.header.reset} onClick={() => setPendingAction("reset")}>
+            <ResetIcon />
+          </IconButton>
 
           {showLegal ? (
             <Link
               href="/legal/privacy"
-              className={`${TOGGLE_BASE} border-line text-fg-faint hover:bg-surface-2 hover:text-fg`}
+              title={t.legal.title}
+              aria-label={t.legal.title}
+              className={iconButtonClass()}
             >
-              {t.legal.title}
+              <LegalIcon />
             </Link>
           ) : null}
 
           <LocaleToggle />
           <ThemeToggle />
-          {showSignOut ? (
-            <SignOutButton
-              className={`${TOGGLE_BASE} border-line text-fg-muted hover:bg-surface-2 hover:text-fg`}
-            />
-          ) : null}
+          {showSignOut ? <SignOutButton /> : null}
         </div>
       </header>
 
@@ -342,6 +342,16 @@ export default function Workspace({
           )}
         </aside>
       </div>
+
+      <ConfirmDialog
+        open={pendingAction !== null}
+        title={pendingAction === "reset" ? t.confirm.resetTitle : t.confirm.relayoutTitle}
+        body={pendingAction === "reset" ? t.confirm.resetBody : t.confirm.relayoutBody}
+        confirmLabel={pendingAction === "reset" ? t.confirm.resetAction : t.confirm.relayoutAction}
+        destructive={pendingAction === "reset"}
+        onConfirm={confirmPending}
+        onCancel={() => setPendingAction(null)}
+      />
     </div>
   );
 }

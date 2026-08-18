@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { useI18n } from "@/components/i18n-provider";
+import IconButton from "@/components/ui/icon-button";
+import { ShareIcon } from "@/components/ui/icons";
 import { useLocalDateTime } from "@/lib/hooks/use-local-datetime";
 import type { OrmId } from "@/lib/orm/types";
 
@@ -77,16 +79,9 @@ export default function ShareDialog({ orm, sources }: ShareDialogProps) {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={create}
-        className="flex items-center gap-1.5 rounded-md border border-line px-2 py-1 text-[11px] font-medium text-fg-muted transition-colors hover:bg-surface-2 hover:text-fg"
-      >
-        <svg viewBox="0 0 20 20" className="size-3" fill="currentColor" aria-hidden="true">
-          <path d="M12.6 3.4a3.3 3.3 0 0 1 4.7 4.7l-2.3 2.3a1 1 0 0 1-1.4-1.4l2.3-2.3a1.3 1.3 0 0 0-1.9-1.9l-2.3 2.3a1 1 0 1 1-1.4-1.4l2.3-2.3Zm-5.2 5.2a1 1 0 0 1 1.4 1.4l-2.3 2.3a1.3 1.3 0 0 0 1.9 1.9l2.3-2.3a1 1 0 0 1 1.4 1.4l-2.3 2.3a3.3 3.3 0 1 1-4.7-4.7l2.3-2.3Zm4.9-.5a1 1 0 0 1 0 1.4l-3 3a1 1 0 1 1-1.4-1.4l3-3a1 1 0 0 1 1.4 0Z" />
-        </svg>
-        {t.header.share}
-      </button>
+      <IconButton label={t.header.share} onClick={create}>
+        <ShareIcon />
+      </IconButton>
 
       {isOpen ? (
         <div

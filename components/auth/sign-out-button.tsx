@@ -4,8 +4,10 @@ import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 
 import { useI18n } from "@/components/i18n-provider";
+import IconButton from "@/components/ui/icon-button";
+import { SignOutIcon } from "@/components/ui/icons";
 
-export default function SignOutButton({ className }: { className?: string }) {
+export default function SignOutButton() {
   const { t } = useI18n();
   const router = useRouter();
   const [isBusy, setIsBusy] = useState(false);
@@ -21,8 +23,8 @@ export default function SignOutButton({ className }: { className?: string }) {
   }, [router]);
 
   return (
-    <button type="button" onClick={signOut} disabled={isBusy} className={className}>
-      {t.auth.signOut}
-    </button>
+    <IconButton label={t.auth.signOut} onClick={signOut} disabled={isBusy}>
+      <SignOutIcon />
+    </IconButton>
   );
 }
