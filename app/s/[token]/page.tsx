@@ -7,7 +7,7 @@ import { operator } from "@/lib/legal/operator";
 import { peekShare } from "@/lib/share/store";
 
 export const metadata = {
-  title: "One-time schema link — ORMLens",
+  title: "One-time schema link — dbORM",
   robots: { index: false, follow: false },
 };
 

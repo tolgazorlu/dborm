@@ -8,7 +8,7 @@ import { currentSession } from "@/lib/auth/session";
 import { accountExists } from "@/lib/auth/store";
 
 export const metadata = {
-  title: "Sign in — ORMLens",
+  title: "Sign in — dbORM",
   robots: { index: false, follow: false },
 };
 

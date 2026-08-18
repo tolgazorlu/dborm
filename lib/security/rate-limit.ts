@@ -24,7 +24,7 @@ interface Counter {
 
 const MAX_KEYS_PER_BUCKET = 20_000;
 
-const REGISTRY = Symbol.for("ormlens.rate-limit.registry");
+const REGISTRY = Symbol.for("dborm.rate-limit.registry");
 
 type Registry = Map<string, Map<string, Counter>>;
 

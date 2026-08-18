@@ -1,7 +1,7 @@
 export const AUTH_ENABLED = process.env.AUTH_ENABLED === "true";
 
-export const SESSION_COOKIE = "ormlens_session";
-export const SECURE_SESSION_COOKIE = "__Host-ormlens_session";
+export const SESSION_COOKIE = "dborm_session";
+export const SECURE_SESSION_COOKIE = "__Host-dborm_session";
 
 const DEFAULT_TTL_HOURS = 168;
 

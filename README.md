@@ -1,4 +1,4 @@
-# ORMLens
+# dbORM
 
 Paste an ORM schema, get a live ER diagram, a deterministic review and an AI
 second opinion. Seven ORMs, one shared schema model, no database connection
@@ -23,8 +23,8 @@ email and password instead — see [Authentication](#authentication).
 ## Quick start
 
 ```bash
-git clone https://github.com/tolgazorlu/ormlens.git
-cd ormlens
+git clone https://github.com/tolgazorlu/dborm.git
+cd dborm
 pnpm install
 cp .env.example .env.local
 pnpm dev
@@ -50,12 +50,12 @@ npm and yarn work too; pnpm is what the lockfile is built with.
 ### Docker
 
 ```bash
-docker build -t ormlens .
+docker build -t dborm .
 docker run -p 3000:3000 \
   -e GOOGLE_GENERATIVE_AI_API_KEY=your-key-here \
   -e AUTH_ENABLED=true \
-  -v ormlens-data:/app/.data \
-  ormlens
+  -v dborm-data:/app/.data \
+  dborm
 ```
 
 The image is a multi-stage build on top of Next.js standalone output and runs
@@ -108,7 +108,7 @@ would be client-controlled and the limits bypassable.
 
 ## Authentication
 
-ORMLens ships **open**: anyone who can reach the server can use it. That is the
+dbORM ships **open**: anyone who can reach the server can use it. That is the
 right default for a tool a team runs on its own network.
 
 If your instance is reachable from the internet and you do not want it used by
@@ -353,7 +353,7 @@ secrets.
 
 ### Where your work is stored
 
-The editor content is written to `localStorage` under `ormlens:workspace:v1`
+The editor content is written to `localStorage` under `dborm:workspace:v1`
 with a 500 ms debounce, so it survives closing the tab. **Reset** in the header
 clears it and restores the samples. Nothing is written to a cookie — a cookie
 travels to the server on every request and caps out around 4 KB, while schema

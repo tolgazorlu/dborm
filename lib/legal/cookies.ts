@@ -10,7 +10,7 @@ function turkish(input: DocumentInput): LegalDocument {
   ];
   if (input.authEnabled) {
     strictlyNecessary.push([
-      "ormlens_session",
+      "dborm_session",
       "Çerez",
       "Giriş yapmış oturumunuzu tanımak için. HttpOnly ve SameSite=Lax olarak ayarlanır.",
       "Varsayılan 7 gün",
@@ -19,11 +19,11 @@ function turkish(input: DocumentInput): LegalDocument {
 
   const localStorage: string[][] = [
     ["theme", "localStorage", "Koyu/açık tema tercihi.", "Siz silene kadar"],
-    ["ormlens:workspace:v1", "localStorage", "Editördeki şema kodunuz. Tarayıcınızdan çıkmaz.", "Siz silene kadar"],
+    ["dborm:workspace:v1", "localStorage", "Editördeki şema kodunuz. Tarayıcınızdan çıkmaz.", "Siz silene kadar"],
   ];
   if (input.analyticsEnabled) {
     localStorage.push([
-      "ormlens:cookie-consent",
+      "dborm:cookie-consent",
       "localStorage",
       "Analitik çerezlere verdiğiniz yanıt.",
       "Siz silene kadar",
@@ -33,7 +33,7 @@ function turkish(input: DocumentInput): LegalDocument {
   const blocks: LegalDocument["blocks"] = [
     {
       type: "p",
-      text: "Bu metin, ORMLens'in tarayıcınızda hangi verileri sakladığını açıklar. Aşağıdaki tablolar bu sunucunun yapılandırmasına göre oluşturulmuştur.",
+      text: "Bu metin, dbORM'in tarayıcınızda hangi verileri sakladığını açıklar. Aşağıdaki tablolar bu sunucunun yapılandırmasına göre oluşturulmuştur.",
     },
     { type: "h2", text: "Zorunlu çerezler" },
     {
@@ -91,7 +91,7 @@ function english(input: DocumentInput): LegalDocument {
   ];
   if (input.authEnabled) {
     strictlyNecessary.push([
-      "ormlens_session",
+      "dborm_session",
       "Cookie",
       "Identifies your signed-in session. Set as HttpOnly with SameSite=Lax.",
       "7 days by default",
@@ -100,11 +100,11 @@ function english(input: DocumentInput): LegalDocument {
 
   const localStorage: string[][] = [
     ["theme", "localStorage", "Dark/light theme preference.", "Until you clear it"],
-    ["ormlens:workspace:v1", "localStorage", "Your schema code in the editor. It never leaves your browser.", "Until you clear it"],
+    ["dborm:workspace:v1", "localStorage", "Your schema code in the editor. It never leaves your browser.", "Until you clear it"],
   ];
   if (input.analyticsEnabled) {
     localStorage.push([
-      "ormlens:cookie-consent",
+      "dborm:cookie-consent",
       "localStorage",
       "Your answer to the analytics cookie prompt.",
       "Until you clear it",
@@ -114,7 +114,7 @@ function english(input: DocumentInput): LegalDocument {
   const blocks: LegalDocument["blocks"] = [
     {
       type: "p",
-      text: "This document explains what ORMLens stores in your browser. The tables below are generated from this server's configuration.",
+      text: "This document explains what dbORM stores in your browser. The tables below are generated from this server's configuration.",
     },
     { type: "h2", text: "Strictly necessary cookies" },
     { type: "p", text: "These are required for the app to work and do not need consent." },

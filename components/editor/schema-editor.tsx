@@ -15,7 +15,7 @@ export interface SchemaEditorProps {
   language: EditorLanguage;
 }
 
-const THEME_NAME = "ormlens";
+const THEME_NAME = "dborm";
 
 const MONACO_CDN = process.env.NEXT_PUBLIC_MONACO_CDN;
 if (MONACO_CDN) loader.config({ paths: { vs: MONACO_CDN } });

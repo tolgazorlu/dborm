@@ -1,7 +1,7 @@
 import { ORM_CATALOG, isOrmId } from "@/lib/orm/catalog";
 import { ORM_IDS, type OrmId } from "@/lib/orm/types";
 
-const STORAGE_KEY = "ormlens:workspace:v1";
+const STORAGE_KEY = "dborm:workspace:v1";
 
 const MAX_STORED_BYTES = 256 * 1024;
 

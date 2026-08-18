@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
 import SignOutButton from "@/components/auth/sign-out-button";
+import Wordmark from "@/components/ui/wordmark";
 import SchemaCanvas from "@/components/canvas/schema-canvas";
 import SchemaEditor from "@/components/editor/schema-editor";
 import { useI18n } from "@/components/i18n-provider";
@@ -142,9 +143,7 @@ export default function Workspace({
   return (
     <div className="flex h-full min-h-0 flex-col bg-bg text-fg">
       <header className="flex shrink-0 items-center gap-3 overflow-x-auto border-b border-line bg-surface px-4 py-2">
-        <h1 className="whitespace-nowrap text-sm font-semibold tracking-tight">
-          ORM<span className="text-accent">Lens</span>
-        </h1>
+        <Wordmark className="whitespace-nowrap text-sm font-semibold tracking-tight" />
 
         <label className="flex shrink-0 items-center gap-1.5">
           <span className="sr-only">{t.header.orm}</span>

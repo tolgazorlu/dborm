@@ -1,4 +1,4 @@
-export const CONSENT_KEY = "ormlens:cookie-consent";
+export const CONSENT_KEY = "dborm:cookie-consent";
 
 export type ConsentValue = "granted" | "denied";
 

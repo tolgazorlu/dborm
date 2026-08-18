@@ -8,7 +8,7 @@ function turkish(input: DocumentInput): LegalDocument {
   const blocks: LegalDocument["blocks"] = [
     {
       type: "p",
-      text: `ORMLens, ORM şema kodunu diyagrama çeviren ve inceleyen bir araçtır. Bu sunucuyu ${input.operatorName} işletmektedir. Bu metin, sunucunun hangi verileri işlediğini açıklar.`,
+      text: `dbORM, ORM şema kodunu diyagrama çeviren ve inceleyen bir araçtır. Bu sunucuyu ${input.operatorName} işletmektedir. Bu metin, sunucunun hangi verileri işlediğini açıklar.`,
     },
     { type: "h2", text: "Kısaca" },
     {
@@ -125,7 +125,7 @@ function english(input: DocumentInput): LegalDocument {
   const blocks: LegalDocument["blocks"] = [
     {
       type: "p",
-      text: `ORMLens is a tool that turns ORM schema code into a diagram and reviews it. This server is operated by ${input.operatorName}. This document explains what data the server processes.`,
+      text: `dbORM is a tool that turns ORM schema code into a diagram and reviews it. This server is operated by ${input.operatorName}. This document explains what data the server processes.`,
     },
     { type: "h2", text: "In short" },
     {

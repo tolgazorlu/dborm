@@ -425,7 +425,7 @@ export interface CommentTable {
   created_at: ColumnType<Date, string | undefined, never>;
 }
 
-// Kysely does not express relations in the type layer. ORMLens only infers them
+// Kysely does not express relations in the type layer. dbORM only infers them
 // when a column name matches a table name (user_id -> users) and draws them with
 // a dashed line, i.e. as a guess.
 export interface Database {

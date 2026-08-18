@@ -1,17 +1,17 @@
 {
-  "name": "ormlens",
+  "name": "dborm",
   "version": "0.1.0",
   "private": true,
   "description": "Turn Drizzle, Prisma, TypeORM, MikroORM, Sequelize, Kysely and Mongoose schemas into a live ER diagram, with a deterministic rule engine and AI review.",
   "license": "MIT",
   "author": "Tolga Zorlu",
-  "homepage": "https://github.com/tolgazorlu/ormlens#readme",
+  "homepage": "https://github.com/tolgazorlu/dborm#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/tolgazorlu/ormlens.git"
+    "url": "https://github.com/tolgazorlu/dborm.git"
   },
   "bugs": {
-    "url": "https://github.com/tolgazorlu/ormlens/issues"
+    "url": "https://github.com/tolgazorlu/dborm/issues"
   },
   "keywords": [
     "orm",

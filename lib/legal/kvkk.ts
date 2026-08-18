@@ -42,7 +42,7 @@ function turkish(input: DocumentInput): LegalDocument {
     { type: "h2", text: "İşlenen kişisel veriler" },
     {
       type: "p",
-      text: "ORMLens, kimlik doğrulaması kapalıyken sizden ad, soyad, telefon gibi kimlik bilgisi istemez. Bu kapsamda işlenen veriler şunlardır:",
+      text: "dbORM, kimlik doğrulaması kapalıyken sizden ad, soyad, telefon gibi kimlik bilgisi istemez. Bu kapsamda işlenen veriler şunlardır:",
     },
     {
       type: "ul",
@@ -138,7 +138,7 @@ function english(input: DocumentInput): LegalDocument {
     { type: "h2", text: "Personal data processed" },
     {
       type: "p",
-      text: "With authentication disabled, ORMLens does not ask you for identity information such as a name or phone number. The data processed is:",
+      text: "With authentication disabled, dbORM does not ask you for identity information such as a name or phone number. The data processed is:",
     },
     {
       type: "ul",

@@ -3,13 +3,13 @@
 ## Reporting a vulnerability
 
 Please do not open a public issue for security problems. Report them privately
-through [GitHub Security Advisories](https://github.com/tolgazorlu/ormlens/security/advisories/new).
+through [GitHub Security Advisories](https://github.com/tolgazorlu/dborm/security/advisories/new).
 Include what you found, how to reproduce it and the impact you expect. You will
 get an initial response within a few days.
 
 ## Threat model
 
-ORMLens accepts untrusted schema source code, parses it on the server and
+dbORM accepts untrusted schema source code, parses it on the server and
 optionally sends a parsed digest to an AI provider. It ships open to everyone;
 `AUTH_ENABLED=true` puts the whole app behind a single email and password
 account. There is no user database, no sign-up and no password reset.

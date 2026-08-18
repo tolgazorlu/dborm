@@ -1,6 +1,7 @@
 "use client";
 
 import { useI18n } from "@/components/i18n-provider";
+import Wordmark from "@/components/ui/wordmark";
 
 export default function AuthIntro({ mode }: { mode: "setup" | "login" }) {
   const { t } = useI18n();
@@ -8,9 +9,7 @@ export default function AuthIntro({ mode }: { mode: "setup" | "login" }) {
 
   return (
     <>
-      <h1 className="text-sm font-semibold text-fg">
-        ORM<span className="text-accent">Lens</span>
-      </h1>
+      <Wordmark className="text-sm font-semibold text-fg" />
       <h2 className="mt-3 text-[15px] font-semibold text-fg">
         {isSetup ? t.auth.setupTitle : t.auth.loginTitle}
       </h2>

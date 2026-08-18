@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 
 import { useI18n } from "@/components/i18n-provider";
 import LocaleToggle from "@/components/locale-toggle";
+import Wordmark from "@/components/ui/wordmark";
 import ThemeToggle from "@/components/theme-toggle";
 
 const LINKS = [
@@ -22,7 +23,7 @@ export default function LegalChrome({ children }: { children: ReactNode }) {
     <div className="flex h-full min-h-0 flex-col bg-bg text-fg">
       <header className="flex shrink-0 items-center gap-3 border-b border-line bg-surface px-4 py-2">
         <Link href="/" className="whitespace-nowrap text-sm font-semibold tracking-tight">
-          ORM<span className="text-accent">Lens</span>
+          <Wordmark />
         </Link>
         <span className="text-[11px] text-fg-faint">{t.legal.title}</span>
         <div className="ml-auto flex items-center gap-1.5">

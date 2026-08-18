@@ -51,7 +51,7 @@ const tr = {
   auth: {
     setupTitle: "Bu sunucuyu koruyun",
     setupBody:
-      "Bu ORMLens sunucusu giriş gerektirecek şekilde yapılandırılmış. Kullanacağınız hesabı şimdi oluşturun; kayıt bundan sonra kapanır.",
+      "Bu dbORM sunucusu giriş gerektirecek şekilde yapılandırılmış. Kullanacağınız hesabı şimdi oluşturun; kayıt bundan sonra kapanır.",
     setupWarning:
       "Sunucu herkese açıksa bu adımı hemen tamamlayın — hesabı ilk oluşturan kişi sunucunun sahibi olur.",
     loginTitle: "Giriş yapın",
@@ -187,7 +187,7 @@ const en: Dictionary = {
   auth: {
     setupTitle: "Protect this server",
     setupBody:
-      "This ORMLens server is configured to require a sign-in. Create the account you will use now; registration closes afterwards.",
+      "This dbORM server is configured to require a sign-in. Create the account you will use now; registration closes afterwards.",
     setupWarning:
       "Complete this step immediately if the server is publicly reachable — whoever creates the account first owns the server.",
     loginTitle: "Sign in",

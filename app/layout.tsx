@@ -20,7 +20,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ORMLens — ORM schema visualizer",
+  title: "dbORM — ORM schema visualizer",
   description:
     "Turn Drizzle, Prisma and Mongoose schemas into a live ER diagram; get index, relation and security analysis from AI.",
 };
