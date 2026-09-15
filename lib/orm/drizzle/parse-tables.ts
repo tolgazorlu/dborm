@@ -31,10 +31,125 @@ const TABLE_FACTORIES: Record<string, Dialect> = {
   sqliteTable: "sqlite",
 };
 
+const TABLE_CREATOR_FACTORIES: Record<string, Dialect> = {
+  pgTableCreator: "pg",
+  mysqlTableCreator: "mysql",
+  sqliteTableCreator: "sqlite",
+};
+
+const SCHEMA_FACTORIES: Record<string, Dialect> = {
+  pgSchema: "pg",
+  mysqlSchema: "mysql",
+};
+
 const ENUM_FACTORIES: Record<string, Dialect> = {
   pgEnum: "pg",
   mysqlEnum: "mysql",
 };
+
+/** A `pgTableCreator` result, or a table factory imported under an alias. */
+export interface TableFactory {
+  dialect: Dialect;
+  /** Prefix the creator callback puts in front of every table name. */
+  prefix: string;
+  /** Suffix the creator callback appends to every table name. */
+  suffix: string;
+}
+
+/** A `pgSchema("app")` object, whose `.table(...)` method declares tables. */
+export interface SchemaObject {
+  dialect: Dialect;
+  name?: string;
+}
+
+/**
+ * Everything a file-level pre-pass learns before tables are read: the local
+ * names that behave like `pgTable`, the `pgSchema` objects and the enums.
+ */
+export interface DrizzleScope {
+  factories: Map<string, TableFactory>;
+  schemas: Map<string, SchemaObject>;
+  enums: Map<string, ParsedEnum>;
+}
+
+export function createScope(): DrizzleScope {
+  const factories = new Map<string, TableFactory>();
+  for (const [name, dialect] of Object.entries(TABLE_FACTORIES)) {
+    factories.set(name, { dialect, prefix: "", suffix: "" });
+  }
+  return { factories, schemas: new Map(), enums: new Map() };
+}
+
+/**
+ * Registers `const createTable = pgTableCreator(...)` and
+ * `const schema = pgSchema("app")` declarations so that the tables they go on
+ * to declare are recognised as tables.
+ */
+export function collectScopeDeclaration(declaration: VariableDeclaration, scope: DrizzleScope): void {
+  const initializer = unwrapDeclaration(declaration.getInitializer());
+  if (!initializer || !Node.isCallExpression(initializer)) return;
+
+  const callee = initializer.getExpression();
+  if (!Node.isIdentifier(callee)) return;
+
+  const calleeName = callee.getText();
+  const creatorDialect = TABLE_CREATOR_FACTORIES[calleeName];
+  if (creatorDialect) {
+    scope.factories.set(declaration.getName(), {
+      dialect: creatorDialect,
+      ...namePattern(initializer.getArguments()[0]),
+    });
+    return;
+  }
+
+  const schemaDialect = SCHEMA_FACTORIES[calleeName];
+  if (schemaDialect) {
+    scope.schemas.set(declaration.getName(), {
+      dialect: schemaDialect,
+      name: stringArg(initializer.getArguments(), 0),
+    });
+  }
+}
+
+/**
+ * Reads the fixed parts out of a table-creator callback such as
+ * `(name) => `acme_${name}`` so table names show up the way the database sees
+ * them. Anything more involved is left alone.
+ */
+function namePattern(callback: Node | undefined): { prefix: string; suffix: string } {
+  const empty = { prefix: "", suffix: "" };
+  if (!callback || !(Node.isArrowFunction(callback) || Node.isFunctionExpression(callback))) {
+    return empty;
+  }
+
+  const body = unwrapToExpression(callback);
+  if (!body || !Node.isTemplateExpression(body)) return empty;
+
+  const spans = body.getTemplateSpans();
+  if (spans.length !== 1) return empty;
+
+  return {
+    prefix: body.getHead().getLiteralText(),
+    suffix: spans[0].getLiteral().getLiteralText(),
+  };
+}
+
+/** Unwraps `as const`, `satisfies X` and parentheses around a declaration. */
+function unwrapDeclaration(node: Node | undefined): Node | undefined {
+  let current = node;
+  while (current) {
+    if (Node.isAsExpression(current) || Node.isSatisfiesExpression(current)) {
+      current = current.getExpression();
+      continue;
+    }
+    if (Node.isParenthesizedExpression(current) || Node.isTypeAssertion(current)) {
+      current = current.getExpression();
+      continue;
+    }
+    return current;
+  }
+  return current;
+}
 
 const DEFAULT_CALLS = [
   "default",
@@ -46,27 +161,59 @@ const DEFAULT_CALLS = [
   "generatedByDefaultAsIdentity",
 ];
 
-export function isTableDeclaration(declaration: VariableDeclaration): boolean {
-  return Boolean(tableFactoryOf(declaration));
+interface TableSite {
+  dialect: Dialect;
+  prefix: string;
+  suffix: string;
+  schemaName?: string;
 }
 
-export function isEnumDeclaration(declaration: VariableDeclaration): boolean {
-  const initializer = declaration.getInitializer();
+export function isTableDeclaration(declaration: VariableDeclaration, scope: DrizzleScope): boolean {
+  return Boolean(tableSiteOf(declaration, scope));
+}
+
+export function isEnumDeclaration(declaration: VariableDeclaration, scope: DrizzleScope): boolean {
+  const initializer = unwrapDeclaration(declaration.getInitializer());
   if (!initializer || !Node.isCallExpression(initializer)) return false;
+
   const callee = initializer.getExpression();
-  return Node.isIdentifier(callee) && callee.getText() in ENUM_FACTORIES;
+  if (Node.isIdentifier(callee)) return callee.getText() in ENUM_FACTORIES;
+
+  // `appSchema.enum("role", [...])` on a pgSchema object.
+  return (
+    Node.isPropertyAccessExpression(callee) &&
+    callee.getName() === "enum" &&
+    scope.schemas.has(callee.getExpression().getText())
+  );
 }
 
-function tableFactoryOf(declaration: VariableDeclaration): Dialect | undefined {
-  const initializer = declaration.getInitializer();
+function tableSiteOf(
+  declaration: VariableDeclaration,
+  scope: DrizzleScope,
+): TableSite | undefined {
+  const initializer = unwrapDeclaration(declaration.getInitializer());
   if (!initializer || !Node.isCallExpression(initializer)) return undefined;
+
   const callee = initializer.getExpression();
-  if (!Node.isIdentifier(callee)) return undefined;
-  return TABLE_FACTORIES[callee.getText()];
+
+  if (Node.isIdentifier(callee)) {
+    const factory = scope.factories.get(callee.getText());
+    return factory ? { ...factory } : undefined;
+  }
+
+  // `appSchema.table("users", {...})` on a pgSchema / mysqlSchema object.
+  if (Node.isPropertyAccessExpression(callee) && callee.getName() === "table") {
+    const owner = scope.schemas.get(callee.getExpression().getText());
+    if (owner) {
+      return { dialect: owner.dialect, prefix: "", suffix: "", schemaName: owner.name };
+    }
+  }
+
+  return undefined;
 }
 
 export function parseEnumDeclaration(declaration: VariableDeclaration): ParsedEnum | undefined {
-  const initializer = declaration.getInitializer();
+  const initializer = unwrapDeclaration(declaration.getInitializer());
   if (!initializer || !Node.isCallExpression(initializer)) return undefined;
 
   const args = initializer.getArguments();
@@ -79,12 +226,13 @@ export function parseEnumDeclaration(declaration: VariableDeclaration): ParsedEn
 
 export function parseTableDeclaration(
   declaration: VariableDeclaration,
-  enums: Map<string, ParsedEnum>,
+  scope: DrizzleScope,
 ): ParsedTable | undefined {
-  const dialect = tableFactoryOf(declaration);
-  const initializer = declaration.getInitializer();
-  if (!dialect || !initializer || !Node.isCallExpression(initializer)) return undefined;
+  const site = tableSiteOf(declaration, scope);
+  const initializer = unwrapDeclaration(declaration.getInitializer());
+  if (!site || !initializer || !Node.isCallExpression(initializer)) return undefined;
 
+  const enums = scope.enums;
   const args = initializer.getArguments();
   const columnsArg = args[1];
   const columns: ParsedColumn[] = [];
@@ -101,8 +249,8 @@ export function parseTableDeclaration(
 
   const table: ParsedTable = {
     id: declaration.getName(),
-    name: stringArg(args, 0) ?? declaration.getName(),
-    dialect,
+    name: tableName(site, stringArg(args, 0) ?? declaration.getName()),
+    dialect: site.dialect,
     columns,
     indexes: [],
     compositePrimaryKey: [],
@@ -112,6 +260,12 @@ export function parseTableDeclaration(
 
   applyTableExtras(table, args[2]);
   return table;
+}
+
+/** Applies the creator prefix/suffix and the schema qualifier to a table name. */
+function tableName(site: TableSite, declared: string): string {
+  const withAffixes = `${site.prefix}${declared}${site.suffix}`;
+  return site.schemaName ? `${site.schemaName}.${withAffixes}` : withAffixes;
 }
 
 function parseColumn(
