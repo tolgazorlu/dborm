@@ -11,6 +11,16 @@ const MAX_SEGMENTS = 4;
 export const MAX_IMPORTED_FILES = 20;
 
 /**
+ * The most files a request may carry for an ORM. The editor enforces
+ * `MAX_IMPORTED_FILES`, but the number of files reaching the parser is
+ * client-controlled, and each one costs a TypeScript source file plus its own
+ * diagnostics — so the limit is checked again on the server.
+ */
+export function maxFileCount(orm: OrmId): number {
+  return ORM_CATALOG[orm].files.length + MAX_IMPORTED_FILES;
+}
+
+/**
  * Normalises a file name coming from a file picker or a drag-and-drop, and
  * rejects anything that is not a plausible schema file. The returned name is
  * both the tab label and the key the content is stored under, so it has to be

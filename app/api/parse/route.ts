@@ -3,6 +3,7 @@ import { requestIsAuthorized } from "@/lib/auth/session";
 import { API_MESSAGES } from "@/lib/i18n/api-messages";
 import { localeFromRequest, toLocale } from "@/lib/i18n/locales";
 import { toOrmId } from "@/lib/orm/catalog";
+import { maxFileCount } from "@/lib/orm/files";
 import { parseSchema, toParserFiles } from "@/lib/orm/parse";
 import { MAX_SOURCE_BYTES, readLimitedJson } from "@/lib/security/body";
 import { checkParseQuota, tooManyRequests } from "@/lib/security/quota";
@@ -45,6 +46,10 @@ export async function POST(request: Request): Promise<Response> {
   const files = toParserFiles(orm, rawSources as Record<string, unknown>);
   if (files.length === 0) {
     return Response.json({ error: messages.schemaRequired }, { status: 400 });
+  }
+
+  if (files.length > maxFileCount(orm)) {
+    return Response.json({ error: messages.tooManyFiles(maxFileCount(orm)) }, { status: 413 });
   }
 
   const totalBytes = files.reduce((sum, file) => sum + file.content.length, 0);

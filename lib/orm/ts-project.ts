@@ -24,12 +24,17 @@ export function createTsProject(files: ParserFile[]): {
   return { project, sourceFiles };
 }
 
+/** Per file, so one unparsable paste cannot bury the panel in messages. */
+const MAX_SYNTAX_DIAGNOSTICS = 20;
+
 export function syntacticDiagnostics(project: Project, sourceFiles: SourceFile[]): ParseDiagnostic[] {
   const program = project.getProgram();
   const diagnostics: ParseDiagnostic[] = [];
 
   for (const sourceFile of sourceFiles) {
-    for (const diagnostic of program.getSyntacticDiagnostics(sourceFile)) {
+    for (const diagnostic of program
+      .getSyntacticDiagnostics(sourceFile)
+      .slice(0, MAX_SYNTAX_DIAGNOSTICS)) {
       diagnostics.push({
         level: "error",
         message: ts.flattenDiagnosticMessageText(diagnostic.compilerObject.messageText, " "),
