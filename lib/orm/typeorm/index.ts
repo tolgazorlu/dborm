@@ -14,7 +14,7 @@ import {
   unwrapTypeText,
   type ReadDecorator,
 } from "../decorators";
-import { createTsProject, syntacticDiagnostics } from "../ts-project";
+import { createTsProject, fileLabel, syntacticDiagnostics } from "../ts-project";
 import {
   emptySchema,
   type Dialect,
@@ -25,6 +25,7 @@ import {
   type ParsedTable,
   type ParserFile,
 } from "../types";
+import { applyRecognition } from "../recognition";
 import { parseFailureMessage, validateSchema } from "../validate";
 
 const RELATION_DECORATORS = ["ManyToOne", "OneToMany", "OneToOne", "ManyToMany"];
@@ -90,6 +91,7 @@ export function parseTypeOrmSchema(files: ParserFile[], locale: Locale = "tr"): 
       diagnostics,
     };
 
+    applyRecognition(schema, usable, locale);
     validateSchema(schema, locale);
     return schema;
   } catch (error) {
@@ -139,7 +141,7 @@ function parseEntity(
     indexes: [],
     compositePrimaryKey: [],
     line: declaration.getStartLineNumber(),
-    file: declaration.getSourceFile().getBaseName(),
+    file: fileLabel(declaration.getSourceFile()),
   };
 
   applyClassIndexes(table, classDecorators);

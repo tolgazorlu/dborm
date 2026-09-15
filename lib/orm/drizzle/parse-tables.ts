@@ -1,5 +1,6 @@
 import { Node, type VariableDeclaration } from "ts-morph";
 
+import { fileLabel } from "../ts-project";
 import {
   arrayElements,
   findCall,
@@ -255,7 +256,7 @@ export function parseTableDeclaration(
     indexes: [],
     compositePrimaryKey: [],
     line: declaration.getStartLineNumber(),
-    file: declaration.getSourceFile().getBaseName(),
+    file: fileLabel(declaration.getSourceFile()),
   };
 
   applyTableExtras(table, args[2]);
