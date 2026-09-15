@@ -22,10 +22,15 @@ export interface BuildFlowOptions {
 export function buildFlow(schema: ParsedSchema, options: BuildFlowOptions): FlowGraph {
   const { direction = "LR", highlight, palette } = options;
 
-  const tables = new Map(schema.tables.map((table) => [table.id, table]));
+  // The same identifier can arrive from two files; the parser warns about it,
+  // and the canvas draws the first one so node ids stay unique.
+  const tables = new Map<string, ParsedTable>();
+  for (const table of schema.tables) {
+    if (!tables.has(table.id)) tables.set(table.id, table);
+  }
   const highlightActive = Boolean(highlight && Object.keys(highlight).length > 0);
 
-  const nodes: TableNode[] = schema.tables.map((table) => ({
+  const nodes: TableNode[] = [...tables.values()].map((table) => ({
     id: table.id,
     type: "table",
     position: { x: 0, y: 0 },
@@ -43,7 +48,7 @@ export function buildFlow(schema: ParsedSchema, options: BuildFlowOptions): Flow
   const columnPairs = new Set<string>();
   const tablePairs = new Set<string>();
 
-  for (const table of schema.tables) {
+  for (const table of tables.values()) {
     for (const column of table.columns) {
       const reference = column.reference;
       if (!reference || !tables.has(reference.table)) continue;

@@ -362,3 +362,27 @@ export const products = pgTable('products', {
   });
   assert.deepEqual(schema.diagnostics, []);
 });
+
+test("warns when two files export the same table identifier", () => {
+  const schema = parseDrizzleSchema(
+    [
+      {
+        path: "schema.ts",
+        content: `import { pgTable, serial } from 'drizzle-orm/pg-core';
+export const users = pgTable('users', { id: serial('id').primaryKey() });`,
+      },
+      {
+        path: "schemas/user.ts",
+        content: `import { pgTable, serial } from 'drizzle-orm/pg-core';
+export const users = pgTable('app_users', { id: serial('id').primaryKey() });`,
+      },
+    ],
+    "en",
+  );
+
+  assert.equal(schema.tables.length, 2);
+  assert.ok(
+    schema.diagnostics.some((item) => /declared in two files/.test(item.message)),
+    "expected a duplicate identifier warning",
+  );
+});
