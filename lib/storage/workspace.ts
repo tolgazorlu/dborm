@@ -1,4 +1,5 @@
 import { ORM_CATALOG, isOrmId } from "@/lib/orm/catalog";
+import { normalizeFileName } from "@/lib/orm/files";
 import { ORM_IDS, type OrmId } from "@/lib/orm/types";
 
 const STORAGE_KEY = "dborm:workspace:v1";
@@ -62,12 +63,16 @@ function sanitize(value: unknown): StoredWorkspace | null {
     const files: Record<string, string> = {};
 
     if (typeof stored === "object" && stored !== null) {
-      for (const file of ORM_CATALOG[orm].files) {
-        const content = (stored as Record<string, unknown>)[file.key];
-        if (typeof content === "string") {
-          files[file.key] = content;
-          hasContent = true;
-        }
+      const builtInKeys = new Set(ORM_CATALOG[orm].files.map((file) => file.key));
+
+      for (const [key, content] of Object.entries(stored as Record<string, unknown>)) {
+        if (typeof content !== "string") continue;
+        // Built-in tabs keep their key; anything else is an imported file and
+        // is only restored if its name still passes the import rules.
+        if (!builtInKeys.has(key) && normalizeFileName(key) !== key) continue;
+
+        files[key] = content;
+        hasContent = true;
       }
     }
     sources[orm] = files;

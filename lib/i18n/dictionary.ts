@@ -91,6 +91,15 @@ const tr = {
   },
   editor: {
     loading: "Editör yükleniyor…",
+    import: "Dosya ekle",
+    importHint: "Şema dosyalarınızı sürükleyip bırakın ya da “Dosya ekle” ile seçin.",
+    drop: "Dosyaları buraya bırakın",
+    remove: (name: string) => `${name} sekmesini kapat`,
+    rejected: (names: string) =>
+      `Eklenemedi: ${names}. Yalnızca .ts, .tsx, .js, .mjs, .cjs ve .prisma dosyaları okunur.`,
+    tooManyFiles: (max: number) => `En fazla ${max} dosya ekleyebilirsiniz.`,
+    tooLarge: (limitKb: number) => `Dosyalar çok büyük (toplam limit ${limitKb} KB).`,
+    unreadable: (names: string) => `Okunamadı: ${names}.`,
   },
   severity: {
     critical: "kritik",
@@ -227,6 +236,15 @@ const en: Dictionary = {
   },
   editor: {
     loading: "Loading editor…",
+    import: "Add files",
+    importHint: "Drag your schema files in, or pick them with “Add files”.",
+    drop: "Drop the files here",
+    remove: (name: string) => `Close the ${name} tab`,
+    rejected: (names: string) =>
+      `Could not add: ${names}. Only .ts, .tsx, .js, .mjs, .cjs and .prisma files are read.`,
+    tooManyFiles: (max: number) => `You can add at most ${max} files.`,
+    tooLarge: (limitKb: number) => `The files are too large (${limitKb} KB in total).`,
+    unreadable: (names: string) => `Could not read: ${names}.`,
   },
   severity: {
     critical: "critical",

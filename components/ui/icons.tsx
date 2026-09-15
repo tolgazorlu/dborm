@@ -106,3 +106,22 @@ export function SignOutIcon(props: IconProps) {
     </Icon>
   );
 }
+
+export function ImportIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M10 3v8" />
+      <path d="M7 8l3 3 3-3" />
+      <path d="M4 13v2.5a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V13" />
+    </Icon>
+  );
+}
+
+export function CloseIcon(props: IconProps) {
+  return (
+    <Icon {...props}>
+      <path d="M6 6l8 8" />
+      <path d="M14 6l-8 8" />
+    </Icon>
+  );
+}
