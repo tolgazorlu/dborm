@@ -1,5 +1,6 @@
 import type { Finding } from "@/lib/analysis/types";
 import type { ParsedSchema, ParsedTable } from "@/lib/orm/types";
+import type { Hosting } from "./hosting";
 
 const DIALECT_LABEL: Record<string, string> = {
   pg: "PostgreSQL",
@@ -13,14 +14,26 @@ const DIALECT_LABEL: Record<string, string> = {
 const ORM_LABEL: Record<string, string> = {
   drizzle: "Drizzle ORM",
   prisma: "Prisma",
+  typeorm: "TypeORM",
+  mikroorm: "MikroORM",
+  sequelize: "Sequelize",
+  kysely: "Kysely",
   mongoose: "Mongoose",
 };
 
-export function toSchemaDigest(schema: ParsedSchema): string {
+const HOSTING_LABEL: Record<Hosting["kind"], string> = {
+  serverless: "serverless / pooled platform",
+  "self-hosted": "self-hosted, long-lived server",
+  unknown: "not stated",
+};
+
+export function toSchemaDigest(schema: ParsedSchema, hosting: Hosting): string {
   const entity = schema.dialect === "mongo" ? "COLLECTION" : "TABLE";
   const lines: string[] = [
     `ORM: ${ORM_LABEL[schema.orm] ?? schema.orm}`,
     `DATABASE: ${DIALECT_LABEL[schema.dialect] ?? schema.dialect}`,
+    `DEPLOYMENT: ${HOSTING_LABEL[hosting.kind]}` +
+      (hosting.evidence.length > 0 ? ` (${hosting.evidence.join(", ")})` : ""),
     "",
   ];
 

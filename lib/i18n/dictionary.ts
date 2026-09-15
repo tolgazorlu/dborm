@@ -36,6 +36,13 @@ const tr = {
       "Günlük yapay zekâ analiz limiti doldu. Lütfen daha sonra tekrar deneyin — kural motoru ve diyagram çalışmaya devam ediyor.",
     empty:
       "Şemanızı model gözüyle değerlendirmek için yukarıdaki düğmeye basın. Eksik index, hatalı ilişki, performans ve güvenlik riskleri raporlanır.",
+    deployment: "Çalışma ortamı",
+    deploymentAuto: "Otomatik algıla",
+    deploymentServerless: "Serverless (Neon, Supabase, Vercel…)",
+    deploymentSelfHosted: "Kendi sunucum / on-prem",
+    deploymentDetected: (evidence: string) => `Algılandı: ${evidence}.`,
+    deploymentUnknown:
+      "Sürücü ya da bağlantı dosyası eklemediğiniz için ortam bilinmiyor. `db.ts` gibi bir dosyayı da ekleyin ya da ortamı elle seçin.",
   },
   confirm: {
     cancel: "Vazgeç",
@@ -181,6 +188,13 @@ const en: Dictionary = {
       "The daily AI analysis limit has been reached. Please try again later — the rule engine and the diagram keep working.",
     empty:
       "Press the button above to have a model review your schema. It reports missing indexes, broken relations, performance and security risks.",
+    deployment: "Runs on",
+    deploymentAuto: "Detect automatically",
+    deploymentServerless: "Serverless (Neon, Supabase, Vercel…)",
+    deploymentSelfHosted: "Self-hosted / on-prem",
+    deploymentDetected: (evidence: string) => `Detected: ${evidence}.`,
+    deploymentUnknown:
+      "No driver or connection file was added, so the deployment is unknown. Add a file such as `db.ts`, or pick the target by hand.",
   },
   confirm: {
     cancel: "Cancel",
