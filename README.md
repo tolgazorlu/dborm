@@ -6,13 +6,19 @@ required.
 
 **Drizzle · Prisma · TypeORM · MikroORM · Sequelize · Kysely · Mongoose**
 
-- **Editor** — Monaco with per-ORM file tabs and syntax highlighting
+- **Editor** — Monaco with per-ORM file tabs and syntax highlighting; drop in
+  your own files (`schemas/user.ts`, `product.ts`) and they become tabs of their
+  own, parsed together
 - **Diagram** — React Flow canvas; tables are nodes, foreign keys are edges,
   updated as you type
 - **Checks** — a deterministic rule engine that finds missing indexes, unsafe
   delete behaviour, secret-looking columns and structural mistakes
+- **Parse errors with a place** — a file that produces no table says so, with
+  the file name and the line where the parser expected a definition; a schema
+  pasted under the wrong ORM is named as such
 - **AI analysis** — an optional streaming review from Google Gemini that
-  covers the judgement calls the rule engine cannot make
+  covers the judgement calls the rule engine cannot make, tuned to the dialect
+  and to whether the database runs serverless or on a server of your own
 
 Nothing is sent anywhere unless you press the AI button. The parser, the
 diagram and the rule engine all run on your own server.
@@ -323,6 +329,39 @@ browser would badly hurt first load. The parsers in `lib/orm/*` are pure
 functions, so running them client-side is just a matter of calling the same
 functions inside a Web Worker — no UI changes needed.
 
+### Importing your own files
+
+The ORM's own tabs (`schema.ts`, `relations.ts`, `schema.prisma`, …) are always
+there. Beyond those, **Add files** — or a drag-and-drop onto the editor — turns
+any `.ts`, `.tsx`, `.js`, `.mjs`, `.cjs` or `.prisma` file into a tab of its own,
+and all of them are parsed as one schema, so a Drizzle project split across
+`schemas/user.ts` and `schemas/product.ts` resolves references across the files.
+An imported file whose name matches a built-in tab replaces that tab. Names are
+normalised and path tricks rejected before anything is stored or parsed
+(`lib/orm/files.ts`); at most 20 imported files, 256 KB in total. Both limits
+are enforced again on the server, since the file count reaching the parser is
+otherwise whatever the caller sends.
+
+Importing a `db.ts` alongside the schema is worth it: that is where the AI layer
+finds out which driver you use.
+
+### When nothing parses
+
+An empty canvas used to be the only answer to a schema the parser could not
+read. Now every file that produced no table is explained in the Checks panel
+(`lib/orm/recognition.ts`):
+
+- the file is another ORM's schema — it says which one, and to switch the
+  selector, instead of a pile of TypeScript syntax errors;
+- the file has no recognisable definition — it names the file, the line where
+  the code starts and what the parser was looking for (`pgTable(...)`,
+  `model Name { ... }`, `@Entity()`, …);
+- other files parsed but this one declares something unreadable — a warning, so
+  supporting files such as `db.ts` stay quiet.
+
+Comments are stripped before any of this is decided, so a commented-out model
+never sends you to the wrong ORM.
+
 ### What the AI sees
 
 The client sends raw source, and the server **parses it again** rather than
@@ -330,6 +369,27 @@ trusting the client's JSON. The model receives the parsed digest plus the rule
 engine's findings marked as "already detected", so it spends its attention on
 judgement calls instead of re-deriving structure. Output is constrained by a Zod
 schema and streamed, so findings appear one field at a time.
+
+Two things shape the review beyond the schema itself:
+
+- **The dialect.** PostgreSQL, MySQL, SQLite and MongoDB each get their own
+  checklist (`lib/ai/practices.ts`) — identity columns versus `serial`,
+  `timestamptz` versus `timestamp`, which databases index foreign keys for you,
+  composite index ordering, enum versus lookup table, partitioning thresholds,
+  and which migrations rewrite a live table. The PostgreSQL list follows the
+  published Postgres agent skills
+  ([neondatabase/postgres-skills](https://github.com/neondatabase/postgres-skills),
+  [supabase/postgres-best-practices](https://supabase.com/docs/guides/getting-started/ai-skills)).
+- **Where it runs.** `lib/ai/hosting.ts` reads the driver imports and connection
+  strings in the files you pasted — Neon, Supabase, Vercel Postgres,
+  PlanetScale, D1, Turso, Prisma Accelerate, Atlas, or a plain `pg` pool,
+  `postgres.js`, `mysql2`, a TypeORM `DataSource`, PgBouncer, a localhost URL.
+  A serverless target gets advice about transaction-mode poolers (no session
+  state, no `LISTEN`/`NOTIFY`, no session advisory locks), round trips and long
+  transactions; a self-hosted one gets extensions, partition maintenance,
+  autovacuum and backup shape. Nothing detected means nothing assumed — the
+  review says so instead of guessing, and the AI panel lets you pick the target
+  by hand.
 
 If anything goes wrong on the model side — quota, invalid key, provider outage,
 malformed output — the response is always the same 429 with the same message.
@@ -378,11 +438,15 @@ specification for what each parser is expected to handle.
 Scope is pinned by the tests in `lib/orm/*/*.test.ts`.
 
 **Drizzle** — `pgTable`/`mysqlTable`/`sqliteTable` with automatic dialect
-detection, named and unnamed columns, chained builders (`primaryKey`, `notNull`,
-`unique`, `default*`, `array`, `references`), both array and object forms of the
-third table argument (`index`, `uniqueIndex`, `primaryKey({columns})`,
-`foreignKey({...})`), `pgEnum` and inline `{ enum: [...] }`, `relations()`
-blocks.
+detection, tables declared on a `pgSchema`/`mysqlSchema` object
+(`appSchema.table(...)`, shown as `app.users`) and tables built by a
+`pgTableCreator`/`mysqlTableCreator`/`sqliteTableCreator` (a simple
+template-literal naming callback is applied to the table name), through
+`as const` / `satisfies` wrappers, named and unnamed columns, chained builders
+(`primaryKey`, `notNull`, `unique`, `default*`, `array`, `references`), both
+array and object forms of the third table argument (`index`, `uniqueIndex`,
+`primaryKey({columns})`, `foreignKey({...})`), `pgEnum`, `appSchema.enum(...)`
+and inline `{ enum: [...] }`, `relations()` blocks.
 
 **Prisma** — dialect from the `datasource` provider, `model`/`enum`/`view`
 blocks, `@id`/`@unique`/`@default`/`@map`/`@db.*`/`@relation`,
