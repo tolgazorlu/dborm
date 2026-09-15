@@ -13,6 +13,8 @@ import {
 import { parseFailureMessage, validateSchema } from "../validate";
 import { isRelationsDeclaration, parseRelationsDeclaration } from "./parse-relations";
 import {
+  collectScopeDeclaration,
+  createScope,
   isEnumDeclaration,
   isTableDeclaration,
   parseEnumDeclaration,
@@ -29,10 +31,19 @@ export function parseDrizzleSchema(files: ParserFile[], locale: Locale = "tr"): 
     const { project, sourceFiles } = createTsProject(usable);
     diagnostics.push(...syntacticDiagnostics(project, sourceFiles));
 
-    const enums = new Map<string, ParsedEnum>();
+    // First pass: learn the local names that behave like `pgTable` — table
+    // creators and `pgSchema` objects — plus every enum, before reading tables.
+    const scope = createScope();
     for (const sourceFile of sourceFiles) {
       for (const declaration of sourceFile.getVariableDeclarations()) {
-        if (!isEnumDeclaration(declaration)) continue;
+        collectScopeDeclaration(declaration, scope);
+      }
+    }
+
+    const enums = scope.enums;
+    for (const sourceFile of sourceFiles) {
+      for (const declaration of sourceFile.getVariableDeclarations()) {
+        if (!isEnumDeclaration(declaration, scope)) continue;
         const parsed = parseEnumDeclaration(declaration);
         if (parsed) enums.set(parsed.id, parsed);
       }
@@ -43,8 +54,8 @@ export function parseDrizzleSchema(files: ParserFile[], locale: Locale = "tr"): 
 
     for (const sourceFile of sourceFiles) {
       for (const declaration of sourceFile.getVariableDeclarations()) {
-        if (isTableDeclaration(declaration)) {
-          const table = parseTableDeclaration(declaration, enums);
+        if (isTableDeclaration(declaration, scope)) {
+          const table = parseTableDeclaration(declaration, scope);
           if (table) tables.push(table);
         } else if (isRelationsDeclaration(declaration)) {
           relations.push(...parseRelationsDeclaration(declaration));

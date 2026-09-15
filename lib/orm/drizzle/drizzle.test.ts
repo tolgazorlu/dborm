@@ -227,3 +227,103 @@ test("returns an empty schema for empty input", () => {
   assert.deepEqual(schema.tables, []);
   assert.deepEqual(schema.diagnostics, []);
 });
+
+test("reads tables declared on a pgSchema object", () => {
+  const schema = parseDrizzleSchema([
+    {
+      path: "schema.ts",
+      content: `import { pgSchema, serial, text } from 'drizzle-orm/pg-core';
+
+export const appSchema = pgSchema('app');
+
+export const users = appSchema.table('users', {
+  id: serial('id').primaryKey(),
+  email: text('email').notNull(),
+});`,
+    },
+  ]);
+
+  assert.equal(schema.dialect, "pg");
+  assert.deepEqual(
+    schema.tables.map((table) => table.name),
+    ["app.users"],
+  );
+});
+
+test("reads tables built by a table creator and applies its name pattern", () => {
+  const schema = parseDrizzleSchema([
+    {
+      path: "schema.ts",
+      content: `import { pgTableCreator, serial } from 'drizzle-orm/pg-core';
+
+export const createTable = pgTableCreator((name) => \`acme_\${name}\`);
+
+export const users = createTable('users', { id: serial('id').primaryKey() });`,
+    },
+  ]);
+
+  assert.deepEqual(
+    schema.tables.map((table) => table.name),
+    ["acme_users"],
+  );
+});
+
+test("reads a table through `as const` and `satisfies` wrappers", () => {
+  const schema = parseDrizzleSchema([
+    {
+      path: "schema.ts",
+      content: `import { pgTable, serial } from 'drizzle-orm/pg-core';
+export const users = pgTable('users', { id: serial('id').primaryKey() }) as const;`,
+    },
+  ]);
+
+  assert.equal(schema.tables.length, 1);
+});
+
+test("reads an enum declared on a pgSchema object", () => {
+  const schema = parseDrizzleSchema([
+    {
+      path: "schema.ts",
+      content: `import { pgSchema, serial } from 'drizzle-orm/pg-core';
+export const appSchema = pgSchema('app');
+export const roleEnum = appSchema.enum('role', ['admin', 'viewer']);
+export const users = appSchema.table('users', {
+  id: serial('id').primaryKey(),
+  role: roleEnum('role').notNull(),
+});`,
+    },
+  ]);
+
+  assert.deepEqual(schema.enums.map((item) => item.values), [["admin", "viewer"]]);
+  assert.equal(schema.tables[0].columns[1].displayType, "enum(role)");
+});
+
+test("commented-out tables are ignored, comments between columns are not", () => {
+  const schema = parseDrizzleSchema([
+    {
+      path: "schema.ts",
+      content: `import { pgTable, serial, text } from 'drizzle-orm/pg-core';
+
+// export const ghosts = pgTable('ghosts', { id: serial('id').primaryKey() });
+
+/*
+export const alsoGhosts = pgTable('also_ghosts', {});
+*/
+
+export const users = pgTable('users', {
+  id: serial('id').primaryKey(), // the surrogate key
+  /** the login address */
+  email: text('email').notNull(),
+});`,
+    },
+  ]);
+
+  assert.deepEqual(
+    schema.tables.map((table) => table.name),
+    ["users"],
+  );
+  assert.deepEqual(
+    schema.tables[0].columns.map((column) => column.name),
+    ["id", "email"],
+  );
+});
