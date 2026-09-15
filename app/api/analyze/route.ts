@@ -8,6 +8,7 @@ import {
 } from "ai";
 
 import { analysisSchema } from "@/lib/ai/analysis-schema";
+import { detectHosting, withChoice } from "@/lib/ai/hosting";
 import { buildAnalysisPrompt, buildSystemPrompt } from "@/lib/ai/prompt";
 import { runStaticChecks } from "@/lib/analysis/static-checks";
 import { requestIsAuthorized } from "@/lib/auth/session";
@@ -52,6 +53,7 @@ export async function POST(request: Request): Promise<Response> {
     orm: rawOrm,
     sources: rawSources,
     locale: rawLocale,
+    hosting: rawHosting,
   } = (body.value ?? {}) as Record<string, unknown>;
   const locale = toLocale(rawLocale);
   const messages = API_MESSAGES[locale];
@@ -85,8 +87,12 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ error: messages.noTables }, { status: 422 });
   }
 
-  const system = buildSystemPrompt(locale, orm);
-  const prompt = buildAnalysisPrompt(parsed, runStaticChecks(parsed, locale));
+  // Where the database runs changes the advice, so it is detected from the
+  // driver imports in the pasted files and can be overridden from the UI.
+  const hosting = withChoice(detectHosting(files), rawHosting);
+
+  const system = buildSystemPrompt(locale, orm, parsed.dialect, hosting);
+  const prompt = buildAnalysisPrompt(parsed, runStaticChecks(parsed, locale), hosting);
 
   const candidates = [
     process.env.AI_MODEL ?? DEFAULT_MODEL,

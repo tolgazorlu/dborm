@@ -1,9 +1,11 @@
 "use client";
 
 import { useObject } from "@ai-sdk/react";
+import { useMemo, useState } from "react";
 
 import { useI18n } from "@/components/i18n-provider";
 import { analysisSchema } from "@/lib/ai/analysis-schema";
+import { detectHosting, type HostingKind } from "@/lib/ai/hosting";
 import type { OrmId } from "@/lib/orm/types";
 import FindingCard from "./finding-card";
 
@@ -31,28 +33,60 @@ export default function AnalysisPanel({ orm, sources, disabled, onHover }: Analy
     schema: analysisSchema,
   });
 
+  const [hosting, setHosting] = useState<HostingKind>("unknown");
+
+  // The same detection the server runs, so the panel can show what the pasted
+  // files gave away before the review is even started.
+  const detected = useMemo(
+    () => detectHosting(Object.entries(sources).map(([path, content]) => ({ path, content }))),
+    [sources],
+  );
+
   const findings = object?.findings ?? [];
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex shrink-0 items-center gap-2 border-b border-line p-3">
-        <button
-          type="button"
-          onClick={() => submit({ orm, sources, locale })}
-          disabled={disabled || isLoading}
-          className="flex-1 rounded-md bg-accent px-3 py-2 text-xs font-semibold text-accent-fg transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-surface-3 disabled:text-fg-faint"
-        >
-          {isLoading ? t.ai.analyzing : t.ai.analyze}
-        </button>
-        {isLoading ? (
+      <div className="shrink-0 space-y-2 border-b border-line p-3">
+        <label className="flex items-center gap-2">
+          <span className="shrink-0 text-[11px] text-fg-muted">{t.ai.deployment}</span>
+          <select
+            value={hosting}
+            onChange={(event) => setHosting(event.target.value as HostingKind)}
+            className="min-w-0 flex-1 rounded-md border border-line bg-surface-2 px-2 py-1 text-[11px] text-fg outline-none transition-colors hover:bg-surface-3 focus:border-accent"
+          >
+            <option value="unknown">{t.ai.deploymentAuto}</option>
+            <option value="serverless">{t.ai.deploymentServerless}</option>
+            <option value="self-hosted">{t.ai.deploymentSelfHosted}</option>
+          </select>
+        </label>
+
+        {hosting === "unknown" ? (
+          <p className="text-[10.5px] leading-relaxed text-fg-faint">
+            {detected.evidence.length > 0
+              ? t.ai.deploymentDetected(detected.evidence.join(", "))
+              : t.ai.deploymentUnknown}
+          </p>
+        ) : null}
+
+        <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={stop}
-            className="rounded-md border border-line px-3 py-2 text-xs font-medium text-fg-muted transition-colors hover:bg-surface-2 hover:text-fg"
+            onClick={() => submit({ orm, sources, locale, hosting })}
+            disabled={disabled || isLoading}
+            className="flex-1 rounded-md bg-accent px-3 py-2 text-xs font-semibold text-accent-fg transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:bg-surface-3 disabled:text-fg-faint"
           >
-            {t.ai.stop}
+            {isLoading ? t.ai.analyzing : t.ai.analyze}
           </button>
-        ) : null}
+          {isLoading ? (
+            <button
+              type="button"
+              onClick={stop}
+              className="rounded-md border border-line px-3 py-2 text-xs font-medium text-fg-muted transition-colors hover:bg-surface-2 hover:text-fg"
+            >
+              {t.ai.stop}
+            </button>
+          ) : null}
+        </div>
       </div>
 
       <div className="pane-scroll min-h-0 flex-1 space-y-2 p-3">
@@ -72,8 +106,12 @@ export default function AnalysisPanel({ orm, sources, disabled, onHover }: Analy
         {object?.healthScore !== undefined && object.healthScore !== null ? (
           <div className="rounded-lg border border-line bg-surface-2 p-3">
             <div className="flex items-baseline justify-between">
-              <span className="text-[11px] uppercase tracking-wide text-fg-faint">{t.ai.health}</span>
-              <span className="text-lg font-bold text-fg">{Math.round(object.healthScore)}/100</span>
+              <span className="text-[11px] uppercase tracking-wide text-fg-faint">
+                {t.ai.health}
+              </span>
+              <span className="text-lg font-bold text-fg">
+                {Math.round(object.healthScore)}/100
+              </span>
             </div>
             <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-3">
               <div

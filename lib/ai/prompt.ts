@@ -1,6 +1,8 @@
 import type { Finding } from "@/lib/analysis/types";
 import type { Locale } from "@/lib/i18n/locales";
-import type { OrmId, ParsedSchema } from "@/lib/orm/types";
+import type { Dialect, OrmId, ParsedSchema } from "@/lib/orm/types";
+import type { Hosting } from "./hosting";
+import { buildContextGuidance } from "./practices";
 import { toSchemaDigest, toStaticFindingsDigest } from "./schema-digest";
 
 const OUTPUT_LANGUAGE: Record<Locale, string> = {
@@ -38,12 +40,19 @@ const ORM_NOTES: Record<OrmId, string> = {
     "compound indexes, and unbounded array growth. Code fixes must be valid Mongoose syntax.",
 };
 
-export function buildSystemPrompt(locale: Locale, orm: OrmId): string {
+export function buildSystemPrompt(
+  locale: Locale,
+  orm: OrmId,
+  dialect: Dialect,
+  hosting: Hosting,
+): string {
   return `You are a senior database architect reviewing an application schema.
 
 Your job: evaluate the schema with production eyes and produce concrete findings.
 
 ${ORM_NOTES[orm]}
+
+${buildContextGuidance(dialect, hosting)}
 
 Rules:
 - Write ALL output in ${OUTPUT_LANGUAGE[locale]}.
@@ -69,14 +78,20 @@ Look especially for:
 - Scale: surrogate key choice, tenant column placement in multi-tenant designs, archiving and
   partitioning for tables that will grow.
 - Security and privacy: personally identifiable data, secret storage, missing soft-delete and
-  audit fields.`;
+  audit fields.
+- Anything from the dialect and deployment notes above that this schema actually gets wrong —
+  those notes are a checklist to apply, not text to repeat back.`;
 }
 
-export function buildAnalysisPrompt(schema: ParsedSchema, staticFindings: Finding[]): string {
+export function buildAnalysisPrompt(
+  schema: ParsedSchema,
+  staticFindings: Finding[],
+  hosting: Hosting,
+): string {
   return [
     "## Parsed schema",
     "",
-    toSchemaDigest(schema),
+    toSchemaDigest(schema, hosting),
     "",
     "## Already detected (do not repeat)",
     "",
