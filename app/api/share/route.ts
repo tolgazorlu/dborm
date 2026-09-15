@@ -2,7 +2,7 @@ import { requestIsAuthorized } from "@/lib/auth/session";
 import { API_MESSAGES } from "@/lib/i18n/api-messages";
 import { localeFromRequest, toLocale } from "@/lib/i18n/locales";
 import { ORM_CATALOG, toOrmId } from "@/lib/orm/catalog";
-import { normalizeFileName } from "@/lib/orm/files";
+import { maxFileCount, normalizeFileName } from "@/lib/orm/files";
 import { MAX_SOURCE_BYTES, readLimitedJson } from "@/lib/security/body";
 import { checkShareCreateQuota, tooManyRequests } from "@/lib/security/quota";
 import { clientKey } from "@/lib/security/rate-limit";
@@ -48,6 +48,10 @@ export async function POST(request: Request): Promise<Response> {
     if (typeof value !== "string") continue;
     if (!builtInKeys.has(key) && normalizeFileName(key) !== key) continue;
     sources[key] = value;
+  }
+
+  if (Object.keys(sources).length > maxFileCount(orm)) {
+    return Response.json({ error: messages.tooManyFiles(maxFileCount(orm)) }, { status: 413 });
   }
 
   const total = Object.values(sources).join("").length;

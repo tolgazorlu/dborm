@@ -6,6 +6,7 @@ export const API_MESSAGES: Record<
     invalidJson: string;
     schemaRequired: string;
     tooLarge: (limitKb: number) => string;
+    tooManyFiles: (max: number) => string;
     noTables: string;
     missingApiKey: string;
     linkGone: string;
@@ -25,6 +26,7 @@ export const API_MESSAGES: Record<
     invalidJson: "Geçersiz JSON gövdesi.",
     schemaRequired: "Şema içeriği zorunlu.",
     tooLarge: (limitKb) => `Girdi çok büyük (limit ${limitKb} KB).`,
+    tooManyFiles: (max) => `Çok fazla dosya gönderildi (en fazla ${max}).`,
     noTables: "Ayrıştırılabilir tablo bulunamadı. Şemayı kontrol edin.",
     missingApiKey:
       "GOOGLE_GENERATIVE_AI_API_KEY tanımlı değil. `.env.local` dosyasına ekleyip sunucuyu yeniden başlatın.",
@@ -45,6 +47,7 @@ export const API_MESSAGES: Record<
     invalidJson: "Invalid JSON body.",
     schemaRequired: "Schema content is required.",
     tooLarge: (limitKb) => `Input too large (limit ${limitKb} KB).`,
+    tooManyFiles: (max) => `Too many files (at most ${max}).`,
     noTables: "No parsable tables found. Check the schema.",
     missingApiKey:
       "GOOGLE_GENERATIVE_AI_API_KEY is not set. Add it to `.env.local` and restart the server.",
