@@ -1,6 +1,6 @@
 import type { Locale } from "@/lib/i18n/locales";
-import { ORM_CATALOG } from "./catalog";
 import { parseDrizzleSchema } from "./drizzle";
+import { pathForKey } from "./files";
 import { parseKyselySchema } from "./kysely";
 import { parseMikroOrmSchema } from "./mikroorm";
 import { parseMongooseSchema } from "./mongoose";
@@ -23,9 +23,24 @@ export function parseSchema(orm: OrmId, files: ParserFile[], locale: Locale): Pa
   return PARSERS[orm](files, locale);
 }
 
+/**
+ * Turns stored sources into files for the parsers: the ORM's own tabs keep
+ * their file name, and every imported file is parsed under the name it was
+ * imported with, so `schemas/user.ts` stays `schemas/user.ts` in diagnostics.
+ */
 export function toParserFiles(orm: OrmId, sources: Record<string, unknown>): ParserFile[] {
-  return ORM_CATALOG[orm].files
-    .map((file) => ({ path: file.name, content: sources[file.key] }))
-    .filter((file): file is ParserFile => typeof file.content === "string")
-    .filter((file) => file.content.trim().length > 0);
+  const files: ParserFile[] = [];
+  const seen = new Set<string>();
+
+  for (const [key, content] of Object.entries(sources)) {
+    if (typeof content !== "string" || content.trim().length === 0) continue;
+
+    const path = pathForKey(orm, key);
+    if (!path || seen.has(path)) continue;
+
+    seen.add(path);
+    files.push({ path, content });
+  }
+
+  return files;
 }

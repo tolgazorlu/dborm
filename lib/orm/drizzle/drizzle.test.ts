@@ -327,3 +327,38 @@ export const users = pgTable('users', {
     ["id", "email"],
   );
 });
+
+test("reads tables spread over several imported files", () => {
+  const schema = parseDrizzleSchema([
+    {
+      path: "schemas/user.ts",
+      content: `import { pgTable, serial, text } from 'drizzle-orm/pg-core';
+export const users = pgTable('users', {
+  id: serial('id').primaryKey(),
+  email: text('email').notNull(),
+});`,
+    },
+    {
+      path: "schemas/product.ts",
+      content: `import { pgTable, serial, integer } from 'drizzle-orm/pg-core';
+import { users } from './user';
+export const products = pgTable('products', {
+  id: serial('id').primaryKey(),
+  ownerId: integer('owner_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+});`,
+    },
+  ]);
+
+  assert.deepEqual(
+    schema.tables.map((table) => table.name),
+    ["users", "products"],
+  );
+  assert.deepEqual(schema.tables[1].columns[1].reference, {
+    table: "users",
+    column: "id",
+    onDelete: "cascade",
+    onUpdate: undefined,
+    isComposite: false,
+  });
+  assert.deepEqual(schema.diagnostics, []);
+});

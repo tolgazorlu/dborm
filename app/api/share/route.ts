@@ -2,6 +2,7 @@ import { requestIsAuthorized } from "@/lib/auth/session";
 import { API_MESSAGES } from "@/lib/i18n/api-messages";
 import { localeFromRequest, toLocale } from "@/lib/i18n/locales";
 import { ORM_CATALOG, toOrmId } from "@/lib/orm/catalog";
+import { normalizeFileName } from "@/lib/orm/files";
 import { MAX_SOURCE_BYTES, readLimitedJson } from "@/lib/security/body";
 import { checkShareCreateQuota, tooManyRequests } from "@/lib/security/quota";
 import { clientKey } from "@/lib/security/rate-limit";
@@ -40,10 +41,13 @@ export async function POST(request: Request): Promise<Response> {
     return Response.json({ error: messages.schemaRequired }, { status: 400 });
   }
 
+  const builtInKeys = new Set(ORM_CATALOG[orm].files.map((file) => file.key));
   const sources: Record<string, string> = {};
-  for (const file of ORM_CATALOG[orm].files) {
-    const value = (rawSources as Record<string, unknown>)[file.key];
-    if (typeof value === "string") sources[file.key] = value;
+
+  for (const [key, value] of Object.entries(rawSources as Record<string, unknown>)) {
+    if (typeof value !== "string") continue;
+    if (!builtInKeys.has(key) && normalizeFileName(key) !== key) continue;
+    sources[key] = value;
   }
 
   const total = Object.values(sources).join("").length;

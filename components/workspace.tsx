@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import Link from "next/link";
 
@@ -18,8 +18,10 @@ import ThemeToggle from "@/components/theme-toggle";
 import ConfirmDialog from "@/components/ui/confirm-dialog";
 import IconButton, { iconButtonClass } from "@/components/ui/icon-button";
 import {
+  CloseIcon,
   EditorIcon,
   HorizontalIcon,
+  ImportIcon,
   LegalIcon,
   PanelIcon,
   RelayoutIcon,
@@ -30,7 +32,9 @@ import type { LayoutDirection } from "@/lib/flow/layout";
 import { buildFlow } from "@/lib/flow/to-flow";
 import { useParsedSchema } from "@/lib/hooks/use-parsed-schema";
 import { ORM_CATALOG, ORM_LIST, initialSources } from "@/lib/orm/catalog";
+import { MAX_IMPORTED_FILES, normalizeFileName, workspaceFiles } from "@/lib/orm/files";
 import { ORM_IDS, type OrmId } from "@/lib/orm/types";
+import { MAX_SOURCE_BYTES } from "@/lib/security/body";
 import { clearWorkspace, readWorkspace, writeWorkspace } from "@/lib/storage/workspace";
 import { readFlowPalette } from "@/lib/theme/read-palette";
 
@@ -59,8 +63,7 @@ export default function Workspace({
     return base;
   });
 
-  const descriptor = ORM_CATALOG[orm];
-  const [activeFile, setActiveFile] = useState(descriptor.files[0].key);
+  const [activeFile, setActiveFile] = useState(ORM_CATALOG[orm].files[0].key);
   const [panelTab, setPanelTab] = useState<PanelTab>("checks");
   const [direction, setDirection] = useState<LayoutDirection>("LR");
   const [highlight, setHighlight] = useState<Record<string, string[]>>({});
@@ -68,6 +71,10 @@ export default function Workspace({
   const [showEditor, setShowEditor] = useState(true);
   const [showPanel, setShowPanel] = useState(true);
   const [fitSignal, setFitSignal] = useState(0);
+
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [importNotice, setImportNotice] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   const openedFromShare = sharedSources !== undefined;
 
@@ -102,6 +109,13 @@ export default function Workspace({
   const currentSources = sources[orm];
   const { schema, staticFindings, isParsing, error } = useParsedSchema(orm, currentSources, locale);
 
+  // Reading dropped files is asynchronous; this is what the workspace holds
+  // once the read finishes, rather than what it held when the drop started.
+  const sourcesRef = useRef(sources);
+  useEffect(() => {
+    sourcesRef.current = sources;
+  }, [sources]);
+
   const { nodes, edges } = useMemo(
     () => buildFlow(schema, { direction, highlight, palette: readFlowPalette(theme) }),
     [schema, direction, highlight, theme],
@@ -116,6 +130,7 @@ export default function Workspace({
   const handleSourceChange = useCallback(
     (fileKey: string, value: string) => {
       setSources((previous) => ({ ...previous, [orm]: { ...previous[orm], [fileKey]: value } }));
+      setImportNotice(null);
     },
     [orm],
   );
@@ -123,6 +138,82 @@ export default function Workspace({
   const handleHover = useCallback((table: string | null, columns: string[]) => {
     setHighlight(table ? { [table]: columns } : {});
   }, []);
+
+  const files = useMemo(() => workspaceFiles(orm, currentSources), [orm, currentSources]);
+  const openFile = files.find((file) => file.key === activeFile) ?? files[0];
+
+  /**
+   * Reads dropped or picked files into new editor tabs. A file whose name
+   * matches one of the ORM's own tabs replaces that tab instead of adding a
+   * duplicate, so importing `schema.ts` does what you would expect.
+   */
+  const importFiles = useCallback(
+    async (incoming: File[]) => {
+      if (incoming.length === 0) return;
+
+      const builtIn = ORM_CATALOG[orm].files;
+      const accepted: { key: string; name: string; content: string }[] = [];
+      const rejected: string[] = [];
+      const unreadable: string[] = [];
+
+      for (const file of incoming) {
+        const name = normalizeFileName(file.name);
+        if (!name) {
+          rejected.push(file.name);
+          continue;
+        }
+
+        try {
+          const content = await file.text();
+          const match = builtIn.find((item) => item.name === name);
+          accepted.push({ key: match ? match.key : name, name, content });
+        } catch {
+          unreadable.push(file.name);
+        }
+      }
+
+      const notices: string[] = [];
+      if (rejected.length > 0) notices.push(t.editor.rejected(rejected.join(", ")));
+      if (unreadable.length > 0) notices.push(t.editor.unreadable(unreadable.join(", ")));
+
+      if (accepted.length > 0) {
+        const builtInKeys = new Set(builtIn.map((item) => item.key));
+        const added = Object.fromEntries(accepted.map((file) => [file.key, file.content]));
+        const merged = { ...sourcesRef.current[orm], ...added };
+
+        const importedCount = Object.keys(merged).filter((key) => !builtInKeys.has(key)).length;
+        const totalBytes = Object.values(merged).reduce((sum, value) => sum + value.length, 0);
+
+        if (importedCount > MAX_IMPORTED_FILES) {
+          notices.push(t.editor.tooManyFiles(MAX_IMPORTED_FILES));
+        } else if (totalBytes > MAX_SOURCE_BYTES) {
+          notices.push(t.editor.tooLarge(MAX_SOURCE_BYTES / 1024));
+        } else {
+          // Merge into the current state, not into the snapshot this callback
+          // closed over, so edits made while the files were read survive.
+          setSources((previous) => ({ ...previous, [orm]: { ...previous[orm], ...added } }));
+          setActiveFile(accepted[0].key);
+          setHighlight({});
+        }
+      }
+
+      setImportNotice(notices.length > 0 ? notices.join(" ") : null);
+    },
+    [orm, t],
+  );
+
+  const removeFile = useCallback(
+    (key: string) => {
+      setSources((previous) => {
+        const next = { ...previous[orm] };
+        delete next[key];
+        return { ...previous, [orm]: next };
+      });
+      setActiveFile((current) => (current === key ? ORM_CATALOG[orm].files[0].key : current));
+      setImportNotice(null);
+    },
+    [orm],
+  );
 
   const [pendingAction, setPendingAction] = useState<"relayout" | "reset" | null>(null);
 
@@ -255,37 +346,105 @@ export default function Workspace({
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
         <section
-          className={`${showEditor ? "flex" : "hidden"} min-h-0 w-[38%] min-w-[300px] max-w-[560px] flex-col border-r border-line bg-surface`}
+          className={`${showEditor ? "flex" : "hidden"} relative min-h-0 w-[38%] min-w-[300px] max-w-[560px] flex-col border-r border-line bg-surface`}
+          onDragOver={(event) => {
+            if (!event.dataTransfer.types.includes("Files")) return;
+            event.preventDefault();
+            setIsDragging(true);
+          }}
+          onDragLeave={(event) => {
+            if (event.currentTarget.contains(event.relatedTarget as Node | null)) return;
+            setIsDragging(false);
+          }}
+          onDrop={(event) => {
+            if (!event.dataTransfer.types.includes("Files")) return;
+            event.preventDefault();
+            setIsDragging(false);
+            void importFiles(Array.from(event.dataTransfer.files));
+          }}
         >
-          <div className="flex shrink-0 border-b border-line">
-            {descriptor.files.map((file) => (
-              <button
-                key={file.key}
-                type="button"
-                onClick={() => setActiveFile(file.key)}
-                className={`px-3 py-2 text-[11px] font-medium transition-colors ${
-                  activeFile === file.key
-                    ? "border-b-2 border-accent text-fg"
-                    : "text-fg-faint hover:text-fg"
-                }`}
-              >
-                {file.name}
-              </button>
+          <div className="flex shrink-0 items-center gap-1 overflow-x-auto border-b border-line pr-1">
+            {files.map((file) => (
+              <span key={file.key} className="group relative flex shrink-0 items-center">
+                <button
+                  type="button"
+                  onClick={() => setActiveFile(file.key)}
+                  title={file.name}
+                  className={`max-w-[160px] truncate py-2 pl-3 text-[11px] font-medium transition-colors ${
+                    file.imported ? "pr-6" : "pr-3"
+                  } ${
+                    openFile?.key === file.key
+                      ? "border-b-2 border-accent text-fg"
+                      : "text-fg-faint hover:text-fg"
+                  }`}
+                >
+                  {file.name}
+                </button>
+                {file.imported ? (
+                  <button
+                    type="button"
+                    onClick={() => removeFile(file.key)}
+                    title={t.editor.remove(file.name)}
+                    aria-label={t.editor.remove(file.name)}
+                    className="absolute right-1 flex size-4 items-center justify-center rounded text-fg-faint transition-colors hover:bg-surface-3 hover:text-fg"
+                  >
+                    <CloseIcon className="size-2.5" />
+                  </button>
+                ) : null}
+              </span>
             ))}
+
+            <IconButton
+              label={t.editor.import}
+              className={`${iconButtonClass()} ml-auto`}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <ImportIcon />
+            </IconButton>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept=".ts,.tsx,.mts,.cts,.js,.jsx,.mjs,.cjs,.prisma"
+              className="hidden"
+              onChange={(event) => {
+                void importFiles(Array.from(event.target.files ?? []));
+                event.target.value = "";
+              }}
+            />
           </div>
+
+          {importNotice ? (
+            <p
+              className="shrink-0 border-b px-3 py-2 text-[11px] leading-relaxed"
+              style={{
+                borderColor: "var(--sev-medium)",
+                background: "var(--sev-medium-bg)",
+                color: "var(--sev-medium)",
+              }}
+              role="status"
+            >
+              {importNotice}
+            </p>
+          ) : null}
+
           <div className="min-h-0 flex-1 overflow-hidden">
-            {descriptor.files.map((file) =>
-              file.key === activeFile ? (
-                <SchemaEditor
-                  key={`${orm}:${file.key}`}
-                  path={`${orm}/${file.name}`}
-                  language={file.language}
-                  value={currentSources[file.key] ?? ""}
-                  onChange={(value) => handleSourceChange(file.key, value)}
-                />
-              ) : null,
-            )}
+            {openFile ? (
+              <SchemaEditor
+                key={`${orm}:${openFile.key}`}
+                path={`${orm}/${openFile.name}`}
+                language={openFile.language}
+                value={currentSources[openFile.key] ?? ""}
+                onChange={(value) => handleSourceChange(openFile.key, value)}
+              />
+            ) : null}
           </div>
+
+          {isDragging ? (
+            <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center border-2 border-dashed border-accent bg-bg/80 text-xs font-medium text-fg">
+              {t.editor.drop}
+            </div>
+          ) : null}
         </section>
 
         <section className="relative min-h-0 min-w-0 flex-1">
