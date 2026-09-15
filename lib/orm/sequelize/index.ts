@@ -2,7 +2,7 @@ import { Node, type Expression, type SourceFile } from "ts-morph";
 
 import type { Locale } from "@/lib/i18n/locales";
 import { literalValue, propertyName, stringArrayElements } from "../ast-utils";
-import { createTsProject, syntacticDiagnostics } from "../ts-project";
+import { createTsProject, fileLabel, syntacticDiagnostics } from "../ts-project";
 import {
   emptySchema,
   type ParseDiagnostic,
@@ -12,6 +12,7 @@ import {
   type ParsedTable,
   type ParserFile,
 } from "../types";
+import { applyRecognition } from "../recognition";
 import { parseFailureMessage, validateSchema } from "../validate";
 
 const IMPLICIT_ID: ParsedColumn = {
@@ -64,6 +65,7 @@ export function parseSequelizeSchema(files: ParserFile[], locale: Locale = "tr")
       diagnostics,
     };
 
+    applyRecognition(schema, usable, locale);
     validateSchema(schema, locale);
     return schema;
   } catch (error) {
@@ -99,7 +101,7 @@ function collectDefineCalls(sourceFile: SourceFile, models: Map<string, ModelDec
       args[1] as Expression | undefined,
       args[2] as Expression | undefined,
       declaration.getStartLineNumber(),
-      sourceFile.getBaseName(),
+      fileLabel(sourceFile),
     );
 
     models.set(declaration.getName(), { id: declaration.getName(), table });
@@ -126,7 +128,7 @@ function collectInitCalls(sourceFile: SourceFile, models: Map<string, ModelDecla
       args[0] as Expression | undefined,
       args[1] as Expression | undefined,
       node.getStartLineNumber(),
-      sourceFile.getBaseName(),
+      fileLabel(sourceFile),
     );
 
     models.set(className, { id: className, table });
@@ -270,7 +272,7 @@ function collectAssociations(
       fields: kind === "belongsTo" ? [foreignKey] : [],
       references: kind === "belongsTo" ? ["id"] : [],
       line: node.getStartLineNumber(),
-      file: sourceFile.getBaseName(),
+      file: fileLabel(sourceFile),
     });
 
     if (kind === "belongsToMany") return;

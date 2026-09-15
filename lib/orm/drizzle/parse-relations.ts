@@ -1,5 +1,6 @@
 import { Node, type VariableDeclaration } from "ts-morph";
 
+import { fileLabel } from "../ts-project";
 import {
   objectArgToRecord,
   propertyName,
@@ -24,7 +25,7 @@ export function parseRelationsDeclaration(declaration: VariableDeclaration): Par
   const body = unwrapToExpression(args[1]);
   if (!sourceTable || !body || !Node.isObjectLiteralExpression(body)) return [];
 
-  const file = declaration.getSourceFile().getBaseName();
+  const file = fileLabel(declaration.getSourceFile());
   const relations: ParsedRelation[] = [];
 
   for (const property of body.getProperties()) {

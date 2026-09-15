@@ -2,7 +2,7 @@ import type { InterfaceDeclaration, SourceFile } from "ts-morph";
 
 import type { Locale } from "@/lib/i18n/locales";
 import { unwrapTypeText } from "../decorators";
-import { createTsProject, syntacticDiagnostics } from "../ts-project";
+import { createTsProject, fileLabel, syntacticDiagnostics } from "../ts-project";
 import {
   emptySchema,
   type ParseDiagnostic,
@@ -11,6 +11,7 @@ import {
   type ParsedTable,
   type ParserFile,
 } from "../types";
+import { applyRecognition } from "../recognition";
 import { parseFailureMessage, validateSchema } from "../validate";
 
 const TYPE_MAP: Record<string, string> = {
@@ -57,6 +58,7 @@ export function parseKyselySchema(files: ParserFile[], locale: Locale = "tr"): P
       diagnostics,
     };
 
+    applyRecognition(schema, usable, locale);
     validateSchema(schema, locale);
     return schema;
   } catch (error) {
@@ -116,7 +118,7 @@ function parseTableInterface(declaration: InterfaceDeclaration, tableName: strin
     indexes: [],
     compositePrimaryKey: [],
     line: declaration.getStartLineNumber(),
-    file: declaration.getSourceFile().getBaseName(),
+    file: fileLabel(declaration.getSourceFile()),
   };
 
   for (const member of declaration.getProperties()) {

@@ -33,13 +33,22 @@ export function syntacticDiagnostics(project: Project, sourceFiles: SourceFile[]
       diagnostics.push({
         level: "error",
         message: ts.flattenDiagnosticMessageText(diagnostic.compilerObject.messageText, " "),
-        file: sourceFile.getBaseName(),
+        file: fileLabel(sourceFile),
         line: diagnostic.getLineNumber(),
       });
     }
   }
 
   return diagnostics;
+}
+
+/**
+ * How a file is named in diagnostics and on tables: the path it was imported
+ * with, so `schemas/user.ts` and `admin/user.ts` stay apart and every message
+ * points at an editor tab.
+ */
+export function fileLabel(sourceFile: SourceFile): string {
+  return sourceFile.getFilePath().replace(/^\/+/, "");
 }
 
 function normalizePath(path: string): string {

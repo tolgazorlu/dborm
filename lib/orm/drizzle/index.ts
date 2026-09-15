@@ -10,6 +10,7 @@ import {
   type ParsedTable,
   type ParserFile,
 } from "../types";
+import { applyRecognition } from "../recognition";
 import { parseFailureMessage, validateSchema } from "../validate";
 import { isRelationsDeclaration, parseRelationsDeclaration } from "./parse-relations";
 import {
@@ -72,6 +73,7 @@ export function parseDrizzleSchema(files: ParserFile[], locale: Locale = "tr"): 
       diagnostics,
     };
 
+    applyRecognition(schema, usable, locale);
     validateSchema(schema, locale);
     return schema;
   } catch (error) {

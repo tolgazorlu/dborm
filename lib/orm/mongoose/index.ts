@@ -2,7 +2,7 @@ import { Node, type Expression, type SourceFile } from "ts-morph";
 
 import type { Locale } from "@/lib/i18n/locales";
 import { literalValue, propertyName, stringArrayElements } from "../ast-utils";
-import { createTsProject, syntacticDiagnostics } from "../ts-project";
+import { createTsProject, fileLabel, syntacticDiagnostics } from "../ts-project";
 import {
   emptySchema,
   type ParseDiagnostic,
@@ -12,6 +12,7 @@ import {
   type ParsedTable,
   type ParserFile,
 } from "../types";
+import { applyRecognition } from "../recognition";
 import { parseFailureMessage, validateSchema } from "../validate";
 
 const IMPLICIT_ID: ParsedColumn = {
@@ -90,6 +91,7 @@ export function parseMongooseSchema(files: ParserFile[], locale: Locale = "tr"):
       diagnostics,
     };
 
+    applyRecognition(schema, usable, locale);
     validateSchema(schema, locale);
     return schema;
   } catch (error) {
@@ -123,7 +125,7 @@ function collectSchemas(sourceFile: SourceFile, schemas: Map<string, SchemaDecla
       definition: args[0] as Expression | undefined,
       options: args[1] as Expression | undefined,
       line: declaration.getStartLineNumber(),
-      file: sourceFile.getBaseName(),
+      file: fileLabel(sourceFile),
     });
   }
 }

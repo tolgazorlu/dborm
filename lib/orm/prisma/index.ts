@@ -10,6 +10,7 @@ import {
   type ParsedTable,
   type ParserFile,
 } from "../types";
+import { applyRecognition } from "../recognition";
 import { parseFailureMessage, validateSchema } from "../validate";
 
 const PROVIDER_DIALECTS: Record<string, Dialect> = {
@@ -51,9 +52,12 @@ export function parsePrismaSchema(files: ParserFile[], locale: Locale = "tr"): P
   try {
     const blocks: { block: Block; file: string }[] = [];
     let dialect: Dialect = "unknown";
+    // Files that carry configuration rather than models: a `schema.prisma`
+    // holding only `datasource` and `generator` did its job.
+    const configFiles = new Set<string>();
 
     for (const file of usable) {
-      const fileName = file.path.split("/").pop() ?? file.path;
+      const fileName = file.path;
       const { blocks: parsed, unterminated } = readBlocks(file.content);
 
       if (unterminated) {
@@ -69,6 +73,9 @@ export function parsePrismaSchema(files: ParserFile[], locale: Locale = "tr"): P
       }
 
       for (const block of parsed) {
+        if (block.kind === "datasource" || block.kind === "generator") {
+          configFiles.add(fileName);
+        }
         if (block.kind === "datasource") {
           const provider = /provider\s*=\s*"([^"]+)"/.exec(
             block.lines.map((item) => item.text).join("\n"),
@@ -113,6 +120,7 @@ export function parsePrismaSchema(files: ParserFile[], locale: Locale = "tr"): P
       diagnostics,
     };
 
+    applyRecognition(schema, usable, locale, configFiles);
     validateSchema(schema, locale);
     return schema;
   } catch (error) {

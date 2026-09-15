@@ -186,7 +186,7 @@ export default function Workspace({
               className="whitespace-nowrap rounded px-1.5 py-0.5 text-[10px] font-medium"
               style={{ background: "var(--sev-critical-bg)", color: "var(--sev-critical)" }}
             >
-              {t.header.syntaxErrors(errorCount)}
+              {t.header.parseErrors(errorCount)}
             </span>
           ) : null}
 
