@@ -7,3 +7,9 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+<!-- BEGIN:fabrika -->
+# Fabrika protokolü
+
+Herhangi bir işe başlamadan önce `~/projects/cortex/playbooks/fabrika.md` dosyasını oku ve akışına uy: ilgili cortex playbook + proje notu (`~/projects/cortex/projects/dborm.md`) okunur, repo baştan sona taranmaz; var olan kanonik parçalar kopyalanır, yeniden yazılmaz; iş bitince cortex güncellenir. Commit: İngilizce, `type: subject`, AI attribution yok.
+<!-- END:fabrika -->
